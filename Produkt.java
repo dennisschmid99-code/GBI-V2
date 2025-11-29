@@ -1,57 +1,46 @@
 
 /**
- * Die Klasse Produkt dient als Superklasse für alle spezifischen
- * Türtypen (Standardtuer und Premiumtuer) der Klasse Produkt.
- * * Design-Entscheidung:
- * Der Zustands-Mechanismus wird hier zentral verwaltet,
- * sodass Standardtuer und Premiumtuer ihn nicht doppelt implementieren müssen.
- * @author  Gruppe 17
- * @version 4.0 (23.11.2025)
+ * Klasse Produkt ist eine Superklasse für die Klassen Premiumtuer und Standardtuer
+ *
+ * @author Alex Marchese
+ * @version 26.11.2025
  */
-
-public class Produkt
+public class Produkt 
 {
-    // --- Datenfelder (Instanzvariablen) ---
-    // Wir nutzen 'private', um den direkten Zugriff von aussen zu verhindern.
-    // Der Zustand wird als Zahl gespeichert (0=bestellt, 1=in Produktion).
-    private int zustand;
+    /** Variable zustand gibt den Zustand des bestellten Produktes an
+    * Mögliche Zustände: 
+    * 0: Bestellt
+    * 1: In Produktion 
+    * 2: Bereit für Auslieferung 
+    * 3: Ausgeliefert
+    */
+    private int zustand; // default 0, sonst 1, 2, oder 3
 
     /**
-     * Konstruktor für Objekte der Klasse Produkt.
-     * Initialisiert ein neues Produkt mit einem definierten Startzustand.
+     * Konstruktor
      */
-    public Produkt()
+    public Produkt() 
     {
-        // Initialisierung: Jedes neue Produkt beginnt im Zustand 0.
-        this.zustand = 0;
-    }
-
-    // --- Methoden ---
-
-    /**
-     * Verändernde Methode (mutator) zum Ändern des Produktionsstatus.
-     * Wir führen eine Gültigkeitsprüfung durch (Bedingte Anweisung), 
-     * bevor wir den Wert ändern. Negative Zustände sollen dadurch abgelehnt werden. 
-     * * @param neuerZustand Der neue Status als ganze Zahl (muss >= 0 sein).
-     */
-    public void zustandAendern(int neuerZustand)
-    {
-        // Nur sinnvolle Werte werden akzeptiert.
-        if (neuerZustand >= 0) {
-            this.zustand = neuerZustand;
-        }
-        else {
-            // Fehlermeldung auf der Konsole, damit der Benutzer Feedback erhält.
-            System.out.println("Fehler: Der Zustand darf nicht negativ sein! Eingabe war: " + neuerZustand);
-        }
+        // this.zustand = 0; //optional
     }
 
     /**
-     * Sondierende Methode (Accessor), um den aktuellen Zustandsstatus abzufragen.
-     * * @return Der aktuelle Zustand als int.
+     * Aktueller Zustand des Produkts wird ausgegeben
+     *
+     * @return zustand Zustand des Produkt wird ausgegeben
      */
-    public int aktuellerZustand()
+    public int gibAktuellerZustand() 
     {
-        return this.zustand;
+        return zustand;
+    }
+
+    /**
+     * Zustand des Produkts wird geändert
+     *
+     * @param  zustand : neuer Zustand des Produkt
+     */
+    public void zustandAendern(int zustand) 
+    {
+        this.zustand = zustand;
     }
 }
