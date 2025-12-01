@@ -55,6 +55,7 @@ public class BestellungTest {
         // Testen von automatisch initialisierten Werten
         assertEquals(false, testBestellung.gibBestellBestaetigung());
         assertEquals(-1, testBestellung.gibBeschaffungsZeit());
+        assertEquals(0.0f, testBestellung.gibLieferzeit(), 0.0001f);
 
         System.out.println(
                 "Test Bestellung mit Variableneingabe erfolgreich. Initialisierung mit Selbstdefinierten Variablen und Standardwerten funktioniert.");
@@ -96,6 +97,56 @@ public class BestellungTest {
 
     }
 
+     @Test
+    /**
+     * Testet setzeLieferzeit() und gibLieferzeit(),
+     * welche in Aufgabe 2 neu hinzugekommen sind.
+     */
+    public void testeSetzeLieferzeit() {
+
+        // Instanzierung einer Bestellung
+        Bestellung testBestellung = new Bestellung(5, 7, 2);
+
+        // Initialwert prüfen
+        assertEquals(0.0f, testBestellung.gibLieferzeit(), 0.0001f);
+
+        // Lieferzeit setzen und prüfen
+        testBestellung.setzeLieferzeit(3.5f);
+        assertEquals(3.5f, testBestellung.gibLieferzeit(), 0.0001f);
+
+        System.out.println("Test Setter/Getter für Lieferzeit erfolgreich.");
+    }
+
+    @Test
+    /**
+     * Testet die neue Methode liefereBestellteProdukte().
+     * 
+     */
+    public void testeLiefereBestellteProdukte() {
+
+        // Instanzierung einer Bestellung
+        Bestellung testBestellung = new Bestellung(2, 3, 1);
+
+        // Es sollten insgesamt 5 Produkte in der Liste sein
+        assertEquals(5, testBestellung.liefereBestellteProdukte().size());
+
+        int anzahlStandardTueren = 0;
+        int anzahlPremiumtueren = 0;
+
+        for (Produkt produkt : testBestellung.liefereBestellteProdukte()) {
+            if (produkt instanceof Standardtuer) {
+                anzahlStandardTueren++;
+            } else if (produkt instanceof Premiumtuer) {
+                anzahlPremiumtueren++;
+            }
+        }
+
+        assertEquals(2, anzahlStandardTueren);
+        assertEquals(3, anzahlPremiumtueren);
+
+        System.out.println("Test liefereBestellteProdukte erfolgreich. Produkte wurden korrekt erstellt.");
+    }
+
     @Test //Optional
     /**
      * Test der Fehlerbehandlung (der Exceptions)
@@ -135,6 +186,7 @@ public class BestellungTest {
         });
         assert(exception.getMessage().contains("Bestellmenge ist zu gross. Maximal 10 Tausend pro Artikel."));
 
+        System.out.println("Test Fehlerbehandlung (Exceptions) erfolgreich.");
     }
 
 }
