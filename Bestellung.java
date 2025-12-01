@@ -3,8 +3,8 @@ import java.util.ArrayList;
 /**
  * Klasse Bestellung beinhaltet die bestellten Produkte
  *
- * @author Alex Marchese
- * @version 26.11.2025
+ * @author Gruppe 17
+ * @version 01.12.2025
  */
 public class Bestellung {
     // Die Liste bestellteProdukte enthält alle Produkte, welche bestellt worden
@@ -23,7 +23,9 @@ public class Bestellung {
     private int anzahlStandardTueren;
     // Anzahl der bestellten Premiumtueren
     private int anzahlPremiumTueren;
-
+    // Gesamtlieferzeit (Produktionszeit + Beschaffungszeit + Standardlieferzeit)
+    private float lieferZeit;
+    
     /**
      * Konstruktor für Klasse Bestellung.
      * Hier werden alle globalen Variablen initialisiert
@@ -37,6 +39,7 @@ public class Bestellung {
 
         this.bestellungsNr = bestellungsNr;
         beschaffungsZeit = -1;
+        lieferZeit = 0.0f; //Lieferzeit beginnt bei 0 und wird später gesetzt
         bestellteProdukte = new ArrayList<Produkt>();
         bestellBestaetigung = false; // this is optional
 
@@ -100,6 +103,15 @@ public class Bestellung {
     }
 
     /**
+     * Mit dieser Methode wird die Liste aller bestellten Produkte zurückgegeben.
+     *
+     * @return Liste mit allen Produkten der Bestellung
+     */
+    public ArrayList<Produkt> liefereBestellteProdukte() {
+    return bestellteProdukte;
+    }
+    
+    /**
      * Mit dieser Methode wird die Beschaffungszeit für die Bestellung ausgegeben
      * 
      * @return beschaffungsZeit
@@ -118,6 +130,26 @@ public class Bestellung {
         this.beschaffungsZeit = beschaffungsZeit;
     }
 
+    /**
+     * Gibt die gesamte Lieferzeit zurück.
+     * 
+     * @return Lieferzeit in Tagen
+     */
+    public float gibLieferzeit() {
+        return lieferZeit;
+    }
+    
+    /**
+     * Setzt die gesamte Lieferzeit der Bestellung.
+     * Wird von der Fabrik gesetzt, nachdem Produktionszeit
+     * und Beschaffungszeit berechnet wurden.
+     *
+     * @param lieferZeit Gesamtlieferzeit in Tagen
+     */
+    public void setzeLieferzeit(float lieferZeit) {
+        this.lieferZeit = lieferZeit;
+    }
+    
     /**
      * Mit dieser Methode wird die Bestellnummer für die Bestellung ausgegeben
      * 
@@ -163,9 +195,9 @@ public class Bestellung {
      * zurückgegeben.
      * Wird für die Unit Testklasse FabrikTest verwendet
      * 
-     * @return bestellteProdukte wird retourniert
+     * @return Liste mit allen bestellten Produkten
      */
     public ArrayList<Produkt> gibBestellteProdukte() {
-        return bestellteProdukte;
+         return liefereBestellteProdukte();
     }
 }

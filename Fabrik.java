@@ -3,8 +3,8 @@ import java.util.ArrayList;
 /**
  * Klasse Fabrik beinhaltet die Methoden der Fabrik
  *
- * @author Alex Marchese
- * @version 26.11.2025
+ * @author Gruppe 17
+ * @version 01.12.2025
  */
 public class Fabrik 
 {
@@ -12,6 +12,13 @@ public class Fabrik
     private ArrayList<Bestellung> bestellungen;
     private int bestellungsNr;
 
+    //NEW
+    private Lager lager;
+
+    private static final int STANDARD_LIEFERZEIT = 1;
+    private static final float MINUTEN_PRO_TAG = 1440.0f;
+    //
+    
     /**
      * Konstruktor der Klasse
      * Hier werden alle globale Variablen initialisiert
@@ -19,7 +26,12 @@ public class Fabrik
     public Fabrik() 
     {
         bestellungen = new ArrayList<Bestellung>();
-        bestellungsNr = 0; // optional
+        bestellungsNr = 0;
+        
+        //Lager benötigt einen Lieferanten, der Material liefern kann
+        Lieferant lieferant = new Lieferant();
+        lager = new Lager(lieferant);// Lager wird mit einem Lieferanten erstellt
+        
     }
 
     /**
@@ -37,10 +49,32 @@ public class Fabrik
             System.out.println("\nDie Bestellung muss mindestens ein Produkt enthalten.");
         } else if (standardTueren > 10_000 || premiumTueren > 10_000) { // Sobald einer der Werte mehr als 10k ist
             System.out.println("\nBestellmenge ist zu gross. Maximal 10 Tausend pro Artikel.");
-        } else {
-            bestellungsNr++; // can be done also with the other ways
-            bestellungen.add(new Bestellung(standardTueren, premiumTueren, bestellungsNr));
         }
+        
+        
+        bestellungsNr++;// Schritt 1: Neue Bestellnummer generieren
+        Bestellung neueBestellung = new Bestellung(standardTueren, premiumTueren, bestellungsNr);
+
+        // Lager berechnet, ob Material sofort verfügbar ist oder nachbestellt werden muss
+        int beschaffungsZeit = lager.gibBeschaffungsZeit(neueBestellung);
+        neueBestellung.setzeBeschaffungsZeit(beschaffungsZeit);
+
+        // Produktionszeit berechnen (in Minuten)
+        int produktionsZeitMin =
+                standardTueren * Standardtuer.gibProduktionszeit()
+                        + premiumTueren * Premiumtuer.gibProduktionszeit();
+
+        // Produktionszeit in Tagen umrechnen
+        float produktionsZeitTage = produktionsZeitMin / MINUTEN_PRO_TAG;
+
+        // Gesamtlieferzeit wird bestimmt
+        float lieferZeit = produktionsZeitTage + beschaffungsZeit + STANDARD_LIEFERZEIT;
+        neueBestellung.setzeLieferzeit(lieferZeit);
+
+        neueBestellung.bestellungBestaetigen(); //Bestellung offiziell bestätigen
+
+        bestellungen.add(neueBestellung); //Bestellung der Liste hinzufügen
+
     }   
 
     /**
@@ -55,6 +89,7 @@ public class Fabrik
                     + " Standardtüren: " + bestellung.gibAnzahlStandardTueren()
                     + " Premiumtüren: " + bestellung.gibAnzahlPremiumTueren()
                     + " Beschaffungszeit: " + bestellung.gibBeschaffungsZeit()
+                    + " Lieferzeit: " + bestellung.gibLieferzeit()
                     + " Bestellbestätigung: " + bestellung.gibBestellBestaetigung());
         }
     }
@@ -68,5 +103,13 @@ public class Fabrik
     public ArrayList<Bestellung> gibBestellungen()
     {
         return bestellungen;
+    }
+    
+    /**
+     * Füllt das Lager wieder vollständig auf.
+     * Diese Methode ruft intern lagerAuffuellen() auf.
+     */
+    public void lagerAuffuellen() {
+        lager.lagerAuffuellen();
     }
 }
