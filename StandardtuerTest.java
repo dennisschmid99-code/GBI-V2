@@ -1,81 +1,51 @@
-
 import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
  * Klasse StandardtuerTest
  *
- * @author Alex Marchese
- * @version 26.11.2025
+ * @author Gruppe 17 - FS
+ * @version 02.12.2025
  */
 public class StandardtuerTest {
-    String nameTestClasse = "StandardtuerTest"; // Name der Testklasse
 
-    /**
-     * Konstruktor von StandardtuerTest
-     */
-    public StandardtuerTest() {
-    }
+    String nameTestClasse = "StandardtuerTest";
 
-    /**
-     * Anweisungen vor jedem Testlauf
-     */
     @BeforeEach
     public void setUp() {
-        System.out.println("Testlauf " + nameTestClasse + " Start");
-        System.out.println();
+        System.out.println("\nTestlauf " + nameTestClasse + " Start\n");
     }
 
-    /**
-     * Anweisungen nach jedem Testlauf
-     */
     @AfterEach
     public void tearDown() {
-        System.out.println();
-        System.out.println("Testlauf " + nameTestClasse + " Ende");
+        System.out.println("\nTestlauf " + nameTestClasse + " Ende");
         System.out.println("------------------------");
     }
 
     @Test
-    /**
-     * Testet die Getters
-     */
     public void testeStandardtuerGetters() {
         assertEquals(2, Standardtuer.gibHolzeinheiten());
         assertEquals(10, Standardtuer.gibSchrauben());
         assertEquals(2, Standardtuer.gibFarbeinheiten());
         assertEquals(1, Standardtuer.gibKartoneinheiten());
         assertEquals(10, Standardtuer.gibProduktionszeit());
-
-        System.out.println("Getters von Standardtür erfolgreich");
+        System.out.println("Getters von Standardtür erfolgreich.");
     }
 
     @Test
-    /**
-     * Testet die Initialisierung und den Getter von der Oberklasse Produkt
-     */
     public void testeProduktGetter() {
-
-        Standardtuer testStandardtuer = new Standardtuer();
-        assertEquals(0, testStandardtuer.gibAktuellerZustand());
-
-        System.out.println("Test Produkt Getter und Initialisierung des Zustandes funktionieren.");
-
+        Standardtuer t = new Standardtuer();
+        assertEquals(0, t.gibAktuellerZustand());
+        System.out.println("Zustand (Getter) erfolgreich.");
     }
 
     @Test
-    /**
-     * Testet den Setter von der Oberklasse Produkt
-     */
     public void testeProduktSetter() {
-
-        Standardtuer testStandardtuer = new Standardtuer();
-        testStandardtuer.zustandAendern(2);
-        assertEquals(2, testStandardtuer.gibAktuellerZustand());
-
-        System.out.println("Test Produkt Setter funktioniert.");
-
+        Standardtuer t = new Standardtuer();
+        t.zustandAendern(2);
+        assertEquals(2, t.gibAktuellerZustand());
+        System.out.println("Setter erfolgreich.");
     }
 }

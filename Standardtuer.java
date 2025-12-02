@@ -1,79 +1,64 @@
-
 /**
- * Klasse Standardtuer beinhaltet die spezifischen Informationen einer Standardtuer
+ * Die Klasse Standardtuer repräsentiert eine Standardtür und beinhaltet
+ * alle materialspezifischen Informationen, die für deren Produktion benötigt werden.
+ * 
+ * Diese Werte sind für alle Standardtüren identisch und werden daher als
+ * Klassenvariablen (static final) geführt.
  *
- * @author Alex Marchese
- * @version 26.11.2025
+ * @author Gruppe 17 - FS
+ * @version 02.12.2025
  */
-public class Standardtuer extends Produkt 
-{
-    // Diese Klassenvariablen beschreiben die Einheiten, die für die Herstellung 
-    // jeder Standardtuer gebraucht werden, deswegen werden sie nicht als Instanzvariablen
-    // sondern als Klassenvariablen deklariert.
+public class Standardtuer extends Produkt {
+
+    // Materialbedarf pro Standardtür
     private static final int HOLZEINHEITEN = 2;
     private static final int SCHRAUBEN = 10;
     private static final int FARBEINHEITEN = 2;
     private static final int KARTONEINHEITEN = 1;
-    
-    // Für die Produktion einer Standardtür werden 10 Minuten gebraucht
+
+    // Produktionszeit in Minuten (wird in Aufgabe 3 in ms umgerechnet)
     private static final int PRODUKTIONSZEIT = 10;
 
     /**
-     * Konstruktor ruft den Konstruktor der Superklasse auf
+     * Konstruktor für eine neue Standardtür.
+     * Ruft den Konstruktor der Superklasse Produkt auf.
      */
-    public Standardtuer() 
-    {
-        // constructor not needed
-        // super(); //optional
+    public Standardtuer() {
+        super();  // setzt Zustand = 0
     }
 
-    /**
-     * Mit dieser Methode wird die benötigte Anzahl Holzeinheiten für die Produktion ausgegeben 
-     * 
-     * @return HOLZEINHEITEN
-     */ 
-    public static int gibHolzeinheiten() 
-    {
+    /** 
+     * @return benötigte Holzeinheiten pro Standardtür 
+     */
+    public static int gibHolzeinheiten() {
         return HOLZEINHEITEN;
     }
 
-    /**
-     * Mit dieser Methode wird die benötigte Anzahl Schrauben für die Produktion ausgegeben 
-     * 
-     * @return SCHRAUBEN
-     */ 
-    public static int gibSchrauben() 
-    {
+    /** 
+     * @return benötigte Schrauben pro Standardtür 
+     */
+    public static int gibSchrauben() {
         return SCHRAUBEN;
     }
 
-    /**
-     * Mit dieser Methode wird die benötigte Anzahl Farbeinheiten für die Produktion ausgegeben 
-     * 
-     * @return FARBEINHEITEN
-     */  
-    public static int gibFarbeinheiten() 
-    {
+    /** 
+     * @return benötigte Farbeinheiten pro Standardtür 
+     */
+    public static int gibFarbeinheiten() {
         return FARBEINHEITEN;
     }
 
-    /**
-     * Mit dieser Methode wird die benötigte Anzahl Kartoneinheiten für die Produktion ausgegeben 
-     * 
-     * @return KARTONEINHEITEN 
+    /** 
+     * @return benötigte Kartoneinheiten pro Standardtür 
      */
-    public static int gibKartoneinheiten() 
-    {
+    public static int gibKartoneinheiten() {
         return KARTONEINHEITEN;
     }
 
-    /**
-     * Mit dieser Methode wird die benötigte Produktionszeit ausgegeben
-     * 
-     * @return PRODUKTIONSZEIT
-     */ 
-    public static int gibProduktionszeit() 
-    {
+    /** 
+     * @return Produktionszeit in Minuten 
+     */
+    public static int gibProduktionszeit() {
         return PRODUKTIONSZEIT;
     }
 }

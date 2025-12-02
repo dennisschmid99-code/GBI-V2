@@ -1,113 +1,109 @@
 import java.util.ArrayList;
 
 /**
- * Klasse Fabrik beinhaltet die Methoden der Fabrik
+ * Die Klasse Fabrik verwaltet Bestellungen und koordiniert
+ * die Materialprüfung über das Lager.
  *
- * @author Gruppe 17
- * @version 01.12.2025
+ * @author Gruppe 17 - FS
+ * @version 02.12.2025
  */
-public class Fabrik 
-{
-    // Die Liste bestellteProdukte enthält alle Produkte, welche  bestellt worden sind
+public class Fabrik {
+
+    // Liste aller Bestellungen
     private ArrayList<Bestellung> bestellungen;
+
+    // Laufende Bestellnummer
     private int bestellungsNr;
 
-    //NEW
+    // Lager der Fabrik
     private Lager lager;
 
+    // Standardlieferzeit laut Aufgabenstellung (1 Tag)
     private static final int STANDARD_LIEFERZEIT = 1;
-    private static final float MINUTEN_PRO_TAG = 1440.0f;
-    //
-    
+
     /**
-     * Konstruktor der Klasse
-     * Hier werden alle globale Variablen initialisiert
+     * Konstruktor: Fabrik wird mit leerer Bestellliste und neuem Lager erzeugt.
      */
-    public Fabrik() 
-    {
-        bestellungen = new ArrayList<Bestellung>();
+    public Fabrik() {
+        bestellungen = new ArrayList<>();
         bestellungsNr = 0;
-        
-        //Lager benötigt einen Lieferanten, der Material liefern kann
-        Lieferant lieferant = new Lieferant();
-        lager = new Lager();// Lager wird erstellt
-        
+        lager = new Lager();   // Lager erzeugt intern seinen Lieferanten
     }
 
     /**
-     * Mit dieser Methode wird eine Bestellung aufgegeben 
-     * 
-     * @param standardTueren Anzahl zu bestellender Standardtüren
-     * @param premiumTueren Anzahl zu bestellender Premiumtüren
+     * Gibt eine neue Bestellung auf und berechnet die Gesamtlieferzeit.
+     *
+     * @param standardTueren Anzahl Standardtüren
+     * @param premiumTueren Anzahl Premiumtüren
      */
-    public void bestellungAufgeben(int standardTueren, int premiumTueren) 
-    {
-        // Fehlerbehandlung
-        if (standardTueren < 0 || premiumTueren < 0) { // Sobald einer der Werte negativ ist
-            System.out.println("\nUngültige Bestellmenge. Kann nicht negativ sein.");
-        } else if (standardTueren == 0 && premiumTueren == 0) { // Wenn beide Werte Null sind
-            System.out.println("\nDie Bestellung muss mindestens ein Produkt enthalten.");
-        } else if (standardTueren > 10_000 || premiumTueren > 10_000) { // Sobald einer der Werte mehr als 10k ist
-            System.out.println("\nBestellmenge ist zu gross. Maximal 10 Tausend pro Artikel.");
+    public void bestellungAufgeben(int standardTueren, int premiumTueren) {
+
+        // --- Fehlerbehandlung ---
+        if (standardTueren < 0 || premiumTueren < 0) {
+            System.out.println("Ungültige Bestellmenge. Kann nicht negativ sein.");
+            return;
         }
-        
-        
-        bestellungsNr++;// Schritt 1: Neue Bestellnummer generieren
+        if (standardTueren == 0 && premiumTueren == 0) {
+            System.out.println("Die Bestellung muss mindestens ein Produkt enthalten.");
+            return;
+        }
+        if (standardTueren > 10000 || premiumTueren > 10000) {
+            System.out.println("Bestellmenge ist zu gross. Maximal 10'000 pro Artikel.");
+            return;
+        }
+
+        // --- Bestellung erstellen ---
+        bestellungsNr++;
         Bestellung neueBestellung = new Bestellung(standardTueren, premiumTueren, bestellungsNr);
 
-        // Lager berechnet, ob Material sofort verfügbar ist oder nachbestellt werden muss
+        // --- Beschaffungszeit vom Lager ermitteln ---
         int beschaffungsZeit = lager.gibBeschaffungsZeit(neueBestellung);
         neueBestellung.setzeBeschaffungsZeit(beschaffungsZeit);
 
-        // Produktionszeit berechnen (in Minuten)
-        int produktionsZeitMin =
-                standardTueren * Standardtuer.gibProduktionszeit()
-                        + premiumTueren * Premiumtuer.gibProduktionszeit();
+        // --- Produktionszeit berechnen (in Tagen) ---
+        int produktionsMinuten =
+                standardTueren * Standardtuer.gibProduktionszeit() +
+                premiumTueren * Premiumtuer.gibProduktionszeit();
 
-        // Produktionszeit in Tagen umrechnen
-        float produktionsZeitTage = produktionsZeitMin / MINUTEN_PRO_TAG;
+        float produktionsTage = produktionsMinuten / 1440.0f; // 1440 Minuten = 1 Tag
 
-        // Gesamtlieferzeit wird bestimmt
-        float lieferZeit = produktionsZeitTage + beschaffungsZeit + STANDARD_LIEFERZEIT;
+        // --- Gesamtlieferzeit ---
+        float lieferZeit = produktionsTage + beschaffungsZeit + STANDARD_LIEFERZEIT;
         neueBestellung.setzeLieferzeit(lieferZeit);
 
-        neueBestellung.bestellungBestaetigen(); //Bestellung offiziell bestätigen
+        // --- Bestellung bestätigen ---
+        neueBestellung.bestellungBestaetigen();
 
-        bestellungen.add(neueBestellung); //Bestellung der Liste hinzufügen
-
-    }   
+        // --- Bestellung speichern ---
+        bestellungen.add(neueBestellung);
+    }
 
     /**
-     * Mit dieser Methode werden alle Bestellungen ausgegeben 
-     * 
+     * Gibt alle Bestellungen der Fabrik aus.
      */
-    public void bestellungenAusgeben() 
-    {
-        System.out.println("\nIn der Fabrik gibt es gerade folgende Bestellungen.");
+    public void bestellungenAusgeben() {
+        System.out.println("\nAktuelle Bestellungen:");
         for (Bestellung bestellung : bestellungen) {
-            System.out.println("Bestellung Nummer " + bestellung.gibBestellungsNr()
-                    + " Standardtüren: " + bestellung.gibAnzahlStandardTueren()
-                    + " Premiumtüren: " + bestellung.gibAnzahlPremiumTueren()
-                    + " Beschaffungszeit: " + bestellung.gibBeschaffungsZeit()
-                    + " Lieferzeit: " + bestellung.gibLieferzeit()
-                    + " Bestellbestätigung: " + bestellung.gibBestellBestaetigung());
+            System.out.println(
+                "Bestellung Nr. " + bestellung.gibBestellungsNr() +
+                " | Standardtüren: " + bestellung.gibAnzahlStandardTueren() +
+                " | Premiumtüren: " + bestellung.gibAnzahlPremiumTueren() +
+                " | Beschaffung: " + bestellung.gibBeschaffungsZeit() +
+                " | Lieferzeit: " + bestellung.gibLieferzeit() +
+                " | Bestätigt: " + bestellung.gibBestellBestaetigung()
+            );
         }
     }
-    
+
     /**
-     * Mit dieser Methode wird die Arrayliste mit den Bestellungen zurückgegeben.
-     * Wird für die Unit Testklasse FabrikTest verwendet
-     * 
-     * @return bestellteProdukte wird retourniert
+     * Gibt die Bestellliste zurück (für Tests).
      */
-    public ArrayList<Bestellung> gibBestellungen()
-    {
+    public ArrayList<Bestellung> gibBestellungen() {
         return bestellungen;
     }
-    
+
     /**
      * Füllt das Lager wieder vollständig auf.
-     * Diese Methode ruft intern lagerAuffuellen() auf.
      */
     public void lagerAuffuellen() {
         lager.lagerAuffuellen();
