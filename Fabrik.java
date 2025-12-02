@@ -30,7 +30,7 @@ public class Fabrik
         
         //Lager benötigt einen Lieferanten, der Material liefern kann
         Lieferant lieferant = new Lieferant();
-        lager = new Lager(lieferant);// Lager wird mit einem Lieferanten erstellt
+        lager = new Lager();// Lager wird erstellt
         
     }
 
