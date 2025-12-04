@@ -58,10 +58,10 @@ public class Lager {
     }
 
     /**
-     * Prüft den Materialbedarf einer Bestellung und bestimmt die Beschaffungszeit.
-     *
-     * @param kundenBestellung Bestellung des Kunden
-     * @return 0 Tage oder 2 Tage Beschaffungszeit
+     * Prüft den Materialbedarf und bestimmt die Beschaffungszeit.
+     * Clean Code Ansatz: Trennt Lagerentnahme von Nachbestellung.
+     * * @param kundenBestellung Die Bestellung
+     * @return 0 (alles da) oder 2 (Nachbestellung nötig)
      */
     public int gibBeschaffungsZeit(Bestellung kundenBestellung) {
 
@@ -71,16 +71,14 @@ public class Lager {
         int benoetigtKarton = 0;
         int benoetigtGlas = 0;
 
-        // 1. Materialbedarf ermitteln
+        // 1. Bedarf ermitteln
         for (Produkt p : kundenBestellung.liefereBestellteProdukte()) {
-
             if (p instanceof Standardtuer) {
                 benoetigtHolz += Standardtuer.gibHolzeinheiten();
                 benoetigtSchrauben += Standardtuer.gibSchrauben();
                 benoetigtFarbe += Standardtuer.gibFarbeinheiten();
                 benoetigtKarton += Standardtuer.gibKartoneinheiten();
-            }
-            else if (p instanceof Premiumtuer) {
+            } else if (p instanceof Premiumtuer) {
                 benoetigtHolz += Premiumtuer.gibHolzeinheiten();
                 benoetigtSchrauben += Premiumtuer.gibSchrauben();
                 benoetigtFarbe += Premiumtuer.gibFarbeinheiten();
@@ -89,29 +87,39 @@ public class Lager {
             }
         }
 
-        // Prüfen, ob genug Material vorhanden ist
-        boolean genugMaterial = 
+        // 2. Prüfen: Reicht der Bestand?
+        // WICHTIG: Variable heisst vorhandeneFarbeeinheiten (doppeltes e) laut Lager.java
+        boolean bestandReicht = 
             vorhandeneHolzeinheiten >= benoetigtHolz &&
             vorhandeneSchrauben >= benoetigtSchrauben &&
             vorhandeneFarbeeinheiten >= benoetigtFarbe &&
             vorhandeneKartoneinheiten >= benoetigtKarton &&
             vorhandeneGlaseinheiten >= benoetigtGlas;
 
-        // Wenn Material fehlt → Nachbestellung, Beschaffungszeit = 2 Tage
-        if (!genugMaterial) {
-            lagerAuffuellen();
-            return 2; // Tage
+        if (bestandReicht) {
+            // Fall A: Alles da -> Einfach abziehen
+            vorhandeneHolzeinheiten -= benoetigtHolz;
+            vorhandeneSchrauben -= benoetigtSchrauben;
+            vorhandeneFarbeeinheiten -= benoetigtFarbe;
+            vorhandeneKartoneinheiten -= benoetigtKarton;
+            vorhandeneGlaseinheiten -= benoetigtGlas;
+            
+            return 0; // Keine Verzögerung
+        } else {
+            // Fall B: Nicht genug da -> Nachbestellung
+            // Strategie: Lager auffüllen, dann bedienen.
+            
+            lagerAuffuellen(); 
+            
+            // Abziehen mit Math.max(0, ...), falls Bestellung > Lagerkapazität
+            vorhandeneHolzeinheiten = Math.max(0, vorhandeneHolzeinheiten - benoetigtHolz);
+            vorhandeneSchrauben = Math.max(0, vorhandeneSchrauben - benoetigtSchrauben);
+            vorhandeneFarbeeinheiten = Math.max(0, vorhandeneFarbeeinheiten - benoetigtFarbe);
+            vorhandeneKartoneinheiten = Math.max(0, vorhandeneKartoneinheiten - benoetigtKarton);
+            vorhandeneGlaseinheiten = Math.max(0, vorhandeneGlaseinheiten - benoetigtGlas);
+            
+            return 2; // 2 Tage Verzögerung
         }
-
-        // Material vorhanden → 0 Tage
-        // Jetzt Material abziehen
-        vorhandeneHolzeinheiten -= benoetigtHolz;
-        vorhandeneSchrauben -= benoetigtSchrauben;
-        vorhandeneFarbeeinheiten -= benoetigtFarbe;
-        vorhandeneKartoneinheiten -= benoetigtKarton;
-        vorhandeneGlaseinheiten -= benoetigtGlas;
-
-        return 0;
     }
 
     /**
