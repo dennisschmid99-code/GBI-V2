@@ -5,11 +5,10 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Testklasse für die Klasse Lager.
- * Überprüft die Materialprüfung, Beschaffungszeit
- * und das Auffüllen des Lagers.
+ * KORRIGIERTE VERSION: Berücksichtigt Farbe als Bottleneck.
  *
- * @author Gruppe 17
- * @version 02.12.2025
+ * @author Gruppe 17 (Refactored & Verified)
+ * @version 04.12.2025
  */
 public class LagerTest
 {
@@ -43,18 +42,26 @@ public class LagerTest
 
     /**
      * Test 2:
-     * Wenn Material fehlt, muss die Beschaffungszeit 2 Tage sein.
+     * Berechnete Beschaffungszeit bei Materialmangel.
+     * Szenario: 500 Türen benötigen 1000 Einheiten Farbe. Lager hat 100.
+     * Das ist der Engpass (Bottleneck), da Holz für 1000 Türen weniger oft nachgefüllt werden müsste.
+     * * Rechnung:
+     * Startbestand Farbe: 100
+     * Fehlmenge: 900
+     * Kapazität pro Ladung: 100
+     * Nötige Nachfüllungen: 900 / 100 = 9 Zyklen.
+     * Zeit: 9 * 2 Tage = 18 Tage.
      */
     @Test
     public void testBeschaffungszeitMitNachbestellung()
     {
-        // Bestellung, die mehr Material braucht, als das Lager hat
+        // Bestellung: 500 Standardtüren
         Bestellung b = new Bestellung(500, 0, 2);
 
         int zeit = lager.gibBeschaffungsZeit(b);
 
-        assertEquals(2, zeit, 
-            "Bei Materialmangel muss die Beschaffungszeit 2 Tage betragen.");
+        assertEquals(18, zeit, 
+            "Bottleneck Farbe (Kap 100, Bedarf 1000) erzwingt 9 Zyklen à 2 Tage = 18 Tage.");
     }
 
     /**
@@ -64,7 +71,6 @@ public class LagerTest
     @Test
     public void testMaterialAbzug()
     {
-        // 1 Standardtür -> 2 Holz, 10 Schrauben ...
         int vorherHolz = lager.gibHolzBestand();
 
         Bestellung b = new Bestellung(1, 0, 3);

@@ -2,11 +2,10 @@ import java.util.ArrayList;
 
 /**
  * Das Lager verwaltet die Materialbestände.
- * * Update (Senior Dev):
  * Implementiert eine performante mathematische Berechnung (O(1)) statt 
- * Simulationsschleifen, um Engpässe und Lieferzeiten zu ermitteln.
+ * Simulationsschleifen, um Engpässe (Bottlenecks) und Lieferzeiten zu ermitteln.
  *
- * @author Gruppe 17 (Refactored)
+ * @author Gruppe 17 (Refactored by Senior Dev)
  * @version 04.12.2025
  */
 public class Lager {
@@ -21,7 +20,7 @@ public class Lager {
     // Aktuelle Bestände
     private int vorhandeneHolzeinheiten;
     private int vorhandeneSchrauben;
-    private int vorhandeneFarbeinheiten; // Korrigiertes Naming
+    private int vorhandeneFarbeinheiten;
     private int vorhandeneKartoneinheiten;
     private int vorhandeneGlaseinheiten;
 
@@ -37,7 +36,6 @@ public class Lager {
 
     /**
      * Setzt das Lager auf die Maximalwerte zurück.
-     * Wird intern oder extern aufgerufen, um Lieferungen zu simulieren.
      */
     public void lagerAuffuellen() {
         lieferant.wareBestellen(MAX_HOLZ, MAX_SCHRAUBEN, MAX_FARBE, MAX_KARTON, MAX_GLAS);
@@ -49,15 +47,14 @@ public class Lager {
     }
 
     /**
-     * Prüft Materialbedarf, berechnet Nachfüllzyklen und aktualisiert Bestände.
-     * * @param kundenBestellung Die zu verarbeitende Bestellung
+     * Prüft Materialbedarf, berechnet Nachfüllzyklen basierend auf dem Engpass-Material
+     * und aktualisiert Bestände.
+     * @param kundenBestellung Die zu verarbeitende Bestellung
      * @return Beschaffungszeit in Tagen (Zyklen * 2)
      */
     public int gibBeschaffungsZeit(Bestellung kundenBestellung) {
         
         // 1. Gesamtbedarf ermitteln
-        // (Hier nutzen wir Arrays für eine elegantere Iteration, falls gewünscht,
-        // aber der Lesbarkeit halber bleiben wir beim expliziten Summieren)
         int bedarfHolz = 0;
         int bedarfSchrauben = 0;
         int bedarfFarbe = 0;
@@ -80,30 +77,25 @@ public class Lager {
         }
 
         // 2. Engpass-Berechnung (Mathematisch)
-        // Wir berechnen für jedes Material: Wie oft muss ich nachfüllen?
         int zyklenHolz = berechneZyklen(vorhandeneHolzeinheiten, bedarfHolz, MAX_HOLZ);
         int zyklenSchrauben = berechneZyklen(vorhandeneSchrauben, bedarfSchrauben, MAX_SCHRAUBEN);
         int zyklenFarbe = berechneZyklen(vorhandeneFarbeinheiten, bedarfFarbe, MAX_FARBE);
         int zyklenKarton = berechneZyklen(vorhandeneKartoneinheiten, bedarfKarton, MAX_KARTON);
         int zyklenGlas = berechneZyklen(vorhandeneGlaseinheiten, bedarfGlas, MAX_GLAS);
 
-        // Das Material mit den meisten nötigen Nachfüllungen bestimmt das Tempo (Bottleneck)
+        // Das Material mit den meisten Zyklen ist der Flaschenhals (Bottleneck).
         int maxZyklen = Math.max(zyklenHolz, Math.max(zyklenSchrauben, 
                         Math.max(zyklenFarbe, Math.max(zyklenKarton, zyklenGlas))));
 
         // 3. Bestände aktualisieren
-        // Neuer Bestand = (Alter Bestand + Nachgefüllt) - Verbrauch
-        // Nachgefüllt = Anzahl der Zyklen * Kapazität pro Zyklus
         vorhandeneHolzeinheiten = berechneRestbestand(vorhandeneHolzeinheiten, bedarfHolz, MAX_HOLZ, maxZyklen);
         vorhandeneSchrauben = berechneRestbestand(vorhandeneSchrauben, bedarfSchrauben, MAX_SCHRAUBEN, maxZyklen);
         vorhandeneFarbeinheiten = berechneRestbestand(vorhandeneFarbeinheiten, bedarfFarbe, MAX_FARBE, maxZyklen);
         vorhandeneKartoneinheiten = berechneRestbestand(vorhandeneKartoneinheiten, bedarfKarton, MAX_KARTON, maxZyklen);
         vorhandeneGlaseinheiten = berechneRestbestand(vorhandeneGlaseinheiten, bedarfGlas, MAX_GLAS, maxZyklen);
 
-        // Optional: Falls Zyklen nötig waren, rufen wir einmalig den Lieferanten auf, 
-        // um die Konsolenausgabe zu erzeugen.
+        // Konsolenausgabe simulieren
         if (maxZyklen > 0) {
-            // Wir tun so, als ob wir alle fehlenden Materialien bestellen
             lieferant.wareBestellen(bedarfHolz, bedarfSchrauben, bedarfFarbe, bedarfKarton, bedarfGlas);
         }
 
@@ -113,12 +105,11 @@ public class Lager {
 
     /**
      * Berechnet mathematisch die nötigen Nachfüllzyklen.
-     * Formel: Aufrunden((Bedarf - Ist) / Kapazität)
      */
     private int berechneZyklen(int bestand, int bedarf, int kapazitaet) {
         if (bestand >= bedarf) return 0;
         int fehlmenge = bedarf - bestand;
-        // Trick für ceil-Division mit Integern: (a + b - 1) / b
+        // Integer-Arithmetic für Ceil: (a + b - 1) / b
         return (fehlmenge + kapazitaet - 1) / kapazitaet;
     }
 
@@ -126,19 +117,13 @@ public class Lager {
      * Berechnet den neuen Lagerbestand nach Verarbeitung der Zyklen.
      */
     private int berechneRestbestand(int bestand, int bedarf, int kapazitaet, int zyklen) {
-        // Die Gesamtmenge, die über die Zeit zur Verfügung stand:
         long verfuegbarGesamt = bestand + ((long) zyklen * kapazitaet);
-        
-        // Wenn wir mehr aufgefüllt haben (wegen Bottleneck bei anderem Material),
-        // ist das Lager für dieses Material jetzt voller.
-        // Wenn dies das Bottleneck-Material war, ist der Restbestand klein.
         return (int) (verfuegbarGesamt - bedarf);
     }
 
     // --- Getter für Tests ---
     public int gibHolzBestand() { return vorhandeneHolzeinheiten; }
     
-    // Debug Ausgabe
     public void lagerBestandAusgeben() {
         System.out.println("Lagerbestand [H:" + vorhandeneHolzeinheiten + 
                            " S:" + vorhandeneSchrauben + 
