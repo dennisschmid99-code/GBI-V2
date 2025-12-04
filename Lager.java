@@ -1,35 +1,34 @@
 import java.util.ArrayList;
 
 /**
- * Das Lager verwaltet die verfügbaren Materialbestände und prüft,
- * ob eine Bestellung vollständig produziert werden kann.
- * 
- * Wenn Material fehlt, wird über den Lieferanten nachbestellt.
- * In diesem Fall beträgt die Beschaffungszeit 2 Tage.
+ * Das Lager verwaltet die Materialbestände.
+ * * Update (Senior Dev):
+ * Implementiert eine performante mathematische Berechnung (O(1)) statt 
+ * Simulationsschleifen, um Engpässe und Lieferzeiten zu ermitteln.
  *
- * @author Gruppe 17
- * @version 02.12.2025
+ * @author Gruppe 17 (Refactored)
+ * @version 04.12.2025
  */
 public class Lager {
 
-    // Maximale Bestände gemäss UML
-    private static final int MAXHOLZEINHEITEN = 200;
-    private static final int MAXSCHRAUBEN = 1000;
-    private static final int MAXFARBEEINHEITEN = 100;
-    private static final int MAXKARTONEINHEITEN = 100;
-    private static final int MAXGLASEINHEITEN = 50;
+    // Konstanten für maximale Lagerkapazität
+    private static final int MAX_HOLZ = 200;
+    private static final int MAX_SCHRAUBEN = 1000;
+    private static final int MAX_FARBE = 100;
+    private static final int MAX_KARTON = 100;
+    private static final int MAX_GLAS = 50;
 
     // Aktuelle Bestände
     private int vorhandeneHolzeinheiten;
     private int vorhandeneSchrauben;
-    private int vorhandeneFarbeeinheiten;
+    private int vorhandeneFarbeinheiten; // Korrigiertes Naming
     private int vorhandeneKartoneinheiten;
     private int vorhandeneGlaseinheiten;
 
     private Lieferant lieferant;
 
     /**
-     * Konstruktor: Lager wird initial komplett gefüllt.
+     * Konstruktor: Lager wird initial gefüllt.
      */
     public Lager() {
         lieferant = new Lieferant();
@@ -37,111 +36,114 @@ public class Lager {
     }
 
     /**
-     * Füllt das Lager vollständig auf die Maximalwerte auf.
-     * Dazu wird eine Bestellung beim Lieferanten ausgelöst.
+     * Setzt das Lager auf die Maximalwerte zurück.
+     * Wird intern oder extern aufgerufen, um Lieferungen zu simulieren.
      */
     public void lagerAuffuellen() {
-        // Lieferant liefert immer erfolgreich laut UML
-        lieferant.wareBestellen(
-            MAXHOLZEINHEITEN,
-            MAXSCHRAUBEN,
-            MAXFARBEEINHEITEN,
-            MAXKARTONEINHEITEN,
-            MAXGLASEINHEITEN
-        );
-
-        vorhandeneHolzeinheiten = MAXHOLZEINHEITEN;
-        vorhandeneSchrauben = MAXSCHRAUBEN;
-        vorhandeneFarbeeinheiten = MAXFARBEEINHEITEN;
-        vorhandeneKartoneinheiten = MAXKARTONEINHEITEN;
-        vorhandeneGlaseinheiten = MAXGLASEINHEITEN;
+        lieferant.wareBestellen(MAX_HOLZ, MAX_SCHRAUBEN, MAX_FARBE, MAX_KARTON, MAX_GLAS);
+        vorhandeneHolzeinheiten = MAX_HOLZ;
+        vorhandeneSchrauben = MAX_SCHRAUBEN;
+        vorhandeneFarbeinheiten = MAX_FARBE;
+        vorhandeneKartoneinheiten = MAX_KARTON;
+        vorhandeneGlaseinheiten = MAX_GLAS;
     }
 
     /**
-     * Prüft den Materialbedarf und bestimmt die Beschaffungszeit.
-     * Clean Code Ansatz: Trennt Lagerentnahme von Nachbestellung.
-     * * @param kundenBestellung Die Bestellung
-     * @return 0 (alles da) oder 2 (Nachbestellung nötig)
+     * Prüft Materialbedarf, berechnet Nachfüllzyklen und aktualisiert Bestände.
+     * * @param kundenBestellung Die zu verarbeitende Bestellung
+     * @return Beschaffungszeit in Tagen (Zyklen * 2)
      */
     public int gibBeschaffungsZeit(Bestellung kundenBestellung) {
+        
+        // 1. Gesamtbedarf ermitteln
+        // (Hier nutzen wir Arrays für eine elegantere Iteration, falls gewünscht,
+        // aber der Lesbarkeit halber bleiben wir beim expliziten Summieren)
+        int bedarfHolz = 0;
+        int bedarfSchrauben = 0;
+        int bedarfFarbe = 0;
+        int bedarfKarton = 0;
+        int bedarfGlas = 0;
 
-        int benoetigtHolz = 0;
-        int benoetigtSchrauben = 0;
-        int benoetigtFarbe = 0;
-        int benoetigtKarton = 0;
-        int benoetigtGlas = 0;
-
-        // 1. Bedarf ermitteln
         for (Produkt p : kundenBestellung.liefereBestellteProdukte()) {
             if (p instanceof Standardtuer) {
-                benoetigtHolz += Standardtuer.gibHolzeinheiten();
-                benoetigtSchrauben += Standardtuer.gibSchrauben();
-                benoetigtFarbe += Standardtuer.gibFarbeinheiten();
-                benoetigtKarton += Standardtuer.gibKartoneinheiten();
+                bedarfHolz += Standardtuer.gibHolzeinheiten();
+                bedarfSchrauben += Standardtuer.gibSchrauben();
+                bedarfFarbe += Standardtuer.gibFarbeinheiten();
+                bedarfKarton += Standardtuer.gibKartoneinheiten();
             } else if (p instanceof Premiumtuer) {
-                benoetigtHolz += Premiumtuer.gibHolzeinheiten();
-                benoetigtSchrauben += Premiumtuer.gibSchrauben();
-                benoetigtFarbe += Premiumtuer.gibFarbeinheiten();
-                benoetigtKarton += Premiumtuer.gibKartoneinheiten();
-                benoetigtGlas += Premiumtuer.gibGlaseinheiten();
+                bedarfHolz += Premiumtuer.gibHolzeinheiten();
+                bedarfSchrauben += Premiumtuer.gibSchrauben();
+                bedarfFarbe += Premiumtuer.gibFarbeinheiten();
+                bedarfKarton += Premiumtuer.gibKartoneinheiten();
+                bedarfGlas += Premiumtuer.gibGlaseinheiten();
             }
         }
 
-        // 2. Prüfen: Reicht der Bestand?
-        // WICHTIG: Variable heisst vorhandeneFarbeeinheiten (doppeltes e) laut Lager.java
-        boolean bestandReicht = 
-            vorhandeneHolzeinheiten >= benoetigtHolz &&
-            vorhandeneSchrauben >= benoetigtSchrauben &&
-            vorhandeneFarbeeinheiten >= benoetigtFarbe &&
-            vorhandeneKartoneinheiten >= benoetigtKarton &&
-            vorhandeneGlaseinheiten >= benoetigtGlas;
+        // 2. Engpass-Berechnung (Mathematisch)
+        // Wir berechnen für jedes Material: Wie oft muss ich nachfüllen?
+        int zyklenHolz = berechneZyklen(vorhandeneHolzeinheiten, bedarfHolz, MAX_HOLZ);
+        int zyklenSchrauben = berechneZyklen(vorhandeneSchrauben, bedarfSchrauben, MAX_SCHRAUBEN);
+        int zyklenFarbe = berechneZyklen(vorhandeneFarbeinheiten, bedarfFarbe, MAX_FARBE);
+        int zyklenKarton = berechneZyklen(vorhandeneKartoneinheiten, bedarfKarton, MAX_KARTON);
+        int zyklenGlas = berechneZyklen(vorhandeneGlaseinheiten, bedarfGlas, MAX_GLAS);
 
-        if (bestandReicht) {
-            // Fall A: Alles da -> Einfach abziehen
-            vorhandeneHolzeinheiten -= benoetigtHolz;
-            vorhandeneSchrauben -= benoetigtSchrauben;
-            vorhandeneFarbeeinheiten -= benoetigtFarbe;
-            vorhandeneKartoneinheiten -= benoetigtKarton;
-            vorhandeneGlaseinheiten -= benoetigtGlas;
-            
-            return 0; // Keine Verzögerung
-        } else {
-            // Fall B: Nicht genug da -> Nachbestellung
-            // Strategie: Lager auffüllen, dann bedienen.
-            
-            lagerAuffuellen(); 
-            
-            // Abziehen mit Math.max(0, ...), falls Bestellung > Lagerkapazität
-            vorhandeneHolzeinheiten = Math.max(0, vorhandeneHolzeinheiten - benoetigtHolz);
-            vorhandeneSchrauben = Math.max(0, vorhandeneSchrauben - benoetigtSchrauben);
-            vorhandeneFarbeeinheiten = Math.max(0, vorhandeneFarbeeinheiten - benoetigtFarbe);
-            vorhandeneKartoneinheiten = Math.max(0, vorhandeneKartoneinheiten - benoetigtKarton);
-            vorhandeneGlaseinheiten = Math.max(0, vorhandeneGlaseinheiten - benoetigtGlas);
-            
-            return 2; // 2 Tage Verzögerung
+        // Das Material mit den meisten nötigen Nachfüllungen bestimmt das Tempo (Bottleneck)
+        int maxZyklen = Math.max(zyklenHolz, Math.max(zyklenSchrauben, 
+                        Math.max(zyklenFarbe, Math.max(zyklenKarton, zyklenGlas))));
+
+        // 3. Bestände aktualisieren
+        // Neuer Bestand = (Alter Bestand + Nachgefüllt) - Verbrauch
+        // Nachgefüllt = Anzahl der Zyklen * Kapazität pro Zyklus
+        vorhandeneHolzeinheiten = berechneRestbestand(vorhandeneHolzeinheiten, bedarfHolz, MAX_HOLZ, maxZyklen);
+        vorhandeneSchrauben = berechneRestbestand(vorhandeneSchrauben, bedarfSchrauben, MAX_SCHRAUBEN, maxZyklen);
+        vorhandeneFarbeinheiten = berechneRestbestand(vorhandeneFarbeinheiten, bedarfFarbe, MAX_FARBE, maxZyklen);
+        vorhandeneKartoneinheiten = berechneRestbestand(vorhandeneKartoneinheiten, bedarfKarton, MAX_KARTON, maxZyklen);
+        vorhandeneGlaseinheiten = berechneRestbestand(vorhandeneGlaseinheiten, bedarfGlas, MAX_GLAS, maxZyklen);
+
+        // Optional: Falls Zyklen nötig waren, rufen wir einmalig den Lieferanten auf, 
+        // um die Konsolenausgabe zu erzeugen.
+        if (maxZyklen > 0) {
+            // Wir tun so, als ob wir alle fehlenden Materialien bestellen
+            lieferant.wareBestellen(bedarfHolz, bedarfSchrauben, bedarfFarbe, bedarfKarton, bedarfGlas);
         }
+
+        // 4. Rückgabe der Zeit (2 Tage pro Zyklus)
+        return maxZyklen * 2;
     }
 
     /**
-     * Gibt die aktuellen Lagerbestände auf der Konsole aus.
+     * Berechnet mathematisch die nötigen Nachfüllzyklen.
+     * Formel: Aufrunden((Bedarf - Ist) / Kapazität)
      */
+    private int berechneZyklen(int bestand, int bedarf, int kapazitaet) {
+        if (bestand >= bedarf) return 0;
+        int fehlmenge = bedarf - bestand;
+        // Trick für ceil-Division mit Integern: (a + b - 1) / b
+        return (fehlmenge + kapazitaet - 1) / kapazitaet;
+    }
+
+    /**
+     * Berechnet den neuen Lagerbestand nach Verarbeitung der Zyklen.
+     */
+    private int berechneRestbestand(int bestand, int bedarf, int kapazitaet, int zyklen) {
+        // Die Gesamtmenge, die über die Zeit zur Verfügung stand:
+        long verfuegbarGesamt = bestand + ((long) zyklen * kapazitaet);
+        
+        // Wenn wir mehr aufgefüllt haben (wegen Bottleneck bei anderem Material),
+        // ist das Lager für dieses Material jetzt voller.
+        // Wenn dies das Bottleneck-Material war, ist der Restbestand klein.
+        return (int) (verfuegbarGesamt - bedarf);
+    }
+
+    // --- Getter für Tests ---
+    public int gibHolzBestand() { return vorhandeneHolzeinheiten; }
+    
+    // Debug Ausgabe
     public void lagerBestandAusgeben() {
-        System.out.println(
-            "Holz: " + vorhandeneHolzeinheiten +
-            ", Schrauben: " + vorhandeneSchrauben +
-            ", Farbe: " + vorhandeneFarbeeinheiten +
-            ", Karton: " + vorhandeneKartoneinheiten +
-            ", Glas: " + vorhandeneGlaseinheiten
-        );
-    }
-
-    /**
-     * Getter für den Holzbestand.
-     * Wird für Unit Tests benötigt.
-     *
-     * @return aktueller Holzbestand
-     */
-    public int gibHolzBestand() {
-        return vorhandeneHolzeinheiten;
+        System.out.println("Lagerbestand [H:" + vorhandeneHolzeinheiten + 
+                           " S:" + vorhandeneSchrauben + 
+                           " F:" + vorhandeneFarbeinheiten + 
+                           " K:" + vorhandeneKartoneinheiten + 
+                           " G:" + vorhandeneGlaseinheiten + "]");
     }
 }
