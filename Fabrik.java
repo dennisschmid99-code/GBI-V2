@@ -38,7 +38,7 @@ public class Fabrik {
      */
     public void bestellungAufgeben(int standardTueren, int premiumTueren) {
 
-        // --- Fehlerbehandlung ---
+        // Fehlerbehandlung
         if (standardTueren < 0 || premiumTueren < 0) {
             System.out.println("Ungültige Bestellmenge. Kann nicht negativ sein.");
             return;
@@ -52,29 +52,29 @@ public class Fabrik {
             return;
         }
 
-        // --- Bestellung erstellen ---
+        // Bestellung erstellen
         bestellungsNr++;
         Bestellung neueBestellung = new Bestellung(standardTueren, premiumTueren, bestellungsNr);
 
-        // --- Beschaffungszeit vom Lager ermitteln ---
+        // Beschaffungszeit vom Lager ermitteln
         int beschaffungsZeit = lager.gibBeschaffungsZeit(neueBestellung);
         neueBestellung.setzeBeschaffungsZeit(beschaffungsZeit);
 
-        // --- Produktionszeit berechnen (in Tagen) ---
+        // Produktionszeit berechnen (in Tagen)
         int produktionsMinuten =
                 standardTueren * Standardtuer.gibProduktionszeit() +
                 premiumTueren * Premiumtuer.gibProduktionszeit();
 
         float produktionsTage = produktionsMinuten / 1440.0f; // 1440 Minuten = 1 Tag
 
-        // --- Gesamtlieferzeit ---
+        // Gesamtlieferzeit
         float lieferZeit = produktionsTage + beschaffungsZeit + STANDARD_LIEFERZEIT;
         neueBestellung.setzeLieferzeit(lieferZeit);
 
-        // --- Bestellung bestätigen ---
+        // Bestellung bestätigen
         neueBestellung.bestellungBestaetigen();
 
-        // --- Bestellung speichern ---
+        // Bestellung speichern
         bestellungen.add(neueBestellung);
     }
 
