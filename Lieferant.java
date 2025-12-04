@@ -2,7 +2,7 @@
  * Die Klasse Lieferant simuliert einen externen Lieferanten, 
  * der Materialbestellungen für das Lager annimmt und immer erfolgreich liefert.
  *
- * @author Gruppe 17 - FS
+ * @author Gruppe 17
  * @version 02.12.2025
  */
 public class Lieferant {

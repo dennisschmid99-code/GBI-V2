@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
  * Überprüft die Materialprüfung, Beschaffungszeit
  * und das Auffüllen des Lagers.
  *
- * @author Gruppe 17 - FS
+ * @author Gruppe 17
  * @version 02.12.2025
  */
 public class LagerTest

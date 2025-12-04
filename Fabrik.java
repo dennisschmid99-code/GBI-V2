@@ -4,7 +4,7 @@ import java.util.ArrayList;
  * Die Klasse Fabrik verwaltet Bestellungen und koordiniert
  * die Materialprüfung über das Lager.
  *
- * @author Gruppe 17 - FS
+ * @author Gruppe 17
  * @version 02.12.2025
  */
 public class Fabrik {

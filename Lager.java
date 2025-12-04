@@ -7,7 +7,7 @@ import java.util.ArrayList;
  * Wenn Material fehlt, wird über den Lieferanten nachbestellt.
  * In diesem Fall beträgt die Beschaffungszeit 2 Tage.
  *
- * @author Gruppe 17 - FS
+ * @author Gruppe 17
  * @version 02.12.2025
  */
 public class Lager {

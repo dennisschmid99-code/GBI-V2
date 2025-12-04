@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
  * Testklasse für die Klasse Bestellung.
  * Testet Initialisierung, Methoden und Fehlerbehandlung.
  *
- * @author Gruppe 17 - FS
+ * @author Gruppe 17
  * @version 02.12.2025
  */
 public class BestellungTest {

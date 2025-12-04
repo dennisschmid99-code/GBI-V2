@@ -8,7 +8,7 @@
  * 2 = Bereit für Auslieferung
  * 3 = Ausgeliefert
  *
- * @author Gruppe 17 - FS
+ * @author Gruppe 17
  * @version 02.12.2025
  */
 public class Produkt {

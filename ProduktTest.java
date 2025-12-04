@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
  * Klasse ProduktTest
  *
  * @version 02.12.2025
- * @author Gruppe 17 - FS
+ * @author Gruppe 17
  */
 public class ProduktTest {
 

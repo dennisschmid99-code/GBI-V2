@@ -5,7 +5,7 @@
  * Diese Werte sind für alle Standardtüren identisch und werden daher als
  * Klassenvariablen (static final) geführt.
  *
- * @author Gruppe 17 - FS
+ * @author Gruppe 17
  * @version 02.12.2025
  */
 public class Standardtuer extends Produkt {

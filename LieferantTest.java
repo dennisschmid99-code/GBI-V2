@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
  * Testklasse für die Klasse Lieferant.
  * Prüft, ob Materialbestellungen erfolgreich verarbeitet werden.
  *
- * @author Gruppe 17 - FS
+ * @author Gruppe 17
  * @version 02.12.2025
  */
 public class LieferantTest {

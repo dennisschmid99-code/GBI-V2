@@ -3,7 +3,7 @@ import java.util.ArrayList;
 /**
  * Klasse Bestellung beinhaltet die bestellten Produkte.
  *
- * @author Gruppe 17 - FS
+ * @author Gruppe 17
  * @version 02.12.2025
  */
 public class Bestellung {
