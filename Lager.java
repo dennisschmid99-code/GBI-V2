@@ -11,11 +11,11 @@ import java.util.ArrayList;
 public class Lager {
 
     // Konstanten für maximale Lagerkapazität
-    private static final int MAX_HOLZ = 200;
-    private static final int MAX_SCHRAUBEN = 1000;
-    private static final int MAX_FARBE = 100;
-    private static final int MAX_KARTON = 100;
-    private static final int MAX_GLAS = 50;
+    private static final int MAX_HOLZ = 1000;
+    private static final int MAX_SCHRAUBEN = 5000;
+    private static final int MAX_FARBE = 1000;
+    private static final int MAX_KARTON = 1000;
+    private static final int MAX_GLAS = 100;
 
     // Aktuelle Bestände
     private int vorhandeneHolzeinheiten;
