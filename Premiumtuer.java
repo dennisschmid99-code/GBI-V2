@@ -1,72 +1,90 @@
-/**
- * Die Klasse Premiumtuer repräsentiert eine Premiumtür und beinhaltet
- * alle materialspezifischen Informationen, die für deren Produktion benötigt werden.
- * 
- * Diese Werte sind für alle Premiumtüren identisch und werden daher als
- * Klassenvariablen (static final) geführt.
- *
- * @author Gruppe 17
- * @version 02.12.2025
- */
-public class Premiumtuer extends Produkt {
 
-    // Materialbedarf pro Premiumtür
+/**
+ * Klasse Premiumtuer beinhaltet die spezifischen Informationen einer Standardtuer
+ *
+ * @author Alex Marchese
+ * @version 08.12.2025
+ */
+public class Premiumtuer extends Produkt 
+{
+    // Diese Klassenvariablen beschreiben die Einheiten, die für die Herstellung 
+    // jeder Premiumtuer gebraucht werden, deswegen werden sie nicht als Instanzvariablen
+    // sondern als Klassenvariablen deklariert.
     private static final int HOLZEINHEITEN = 4;
     private static final int SCHRAUBEN = 5;
     private static final int GLASEINHEITEN = 5;
     private static final int FARBEINHEITEN = 1;
     private static final int KARTONEINHEITEN = 5;
-
-    // Produktionszeit in Minuten (wird in Aufgabe 3 in ms umgerechnet)
+    
+    // Für die Produktion einer Premiumtür werden 30 Minuten gebraucht
     private static final int PRODUKTIONSZEIT = 30;
 
     /**
-     * Konstruktor für eine neue Premiumtür.
-     * Ruft den Konstruktor der Superklasse Produkt auf.
+     * Konstruktor ruft den Konstruktor der Superklasse auf
      */
-    public Premiumtuer() {
-        super(); // setzt Zustand = 0
+    public Premiumtuer() 
+    {
+        // constructor not needed
+        // super(); //optional
     }
 
-    /** 
-     * @return benötigte Holzeinheiten pro Premiumtür 
-     */
-    public static int gibHolzeinheiten() {
+    /**
+     * Mit dieser Methode wird die benötigte Anzahl Holzeinheiten für die Produktion ausgegeben 
+     * 
+     * @return HOLZEINHEITEN
+     */ 
+    public static int gibHolzeinheiten() 
+    {
         return HOLZEINHEITEN;
     }
 
-    /** 
-     * @return benötigte Schrauben pro Premiumtür 
-     */
-    public static int gibSchrauben() {
+    /**
+     * Mit dieser Methode wird die benötigte Anzahl Schrauben für die Produktion ausgegeben 
+     * 
+     * @return SCHRAUBEN
+     */ 
+    public static int gibSchrauben() 
+    {
         return SCHRAUBEN;
     }
 
-    /** 
-     * @return benötigte Glaseinheiten pro Premiumtür 
+    /**
+     * Mit dieser Methode wird die benötigte Anzahl Glaseinheiten für die Produktion ausgegeben 
+     * 
+     * @return GLASEINHEITEN
      */
-    public static int gibGlaseinheiten() {
+    public static int gibGlaseinheiten() 
+    {
         return GLASEINHEITEN;
     }
 
-    /** 
-     * @return benötigte Farbeinheiten pro Premiumtür 
-     */
-    public static int gibFarbeinheiten() {
+    /**
+     * Mit dieser Methode wird die benötigte Anzahl Farbeinheiten für die Produktion ausgegeben 
+     * 
+     * @return FARBEINHEITEN
+     */  
+    public static int gibFarbeinheiten() 
+    {
         return FARBEINHEITEN;
     }
 
-    /** 
-     * @return benötigte Kartoneinheiten pro Premiumtür 
+    /**
+     * Mit dieser Methode wird die benötigte Anzahl Kartoneinheiten für die Produktion ausgegeben 
+     * 
+     * @return KARTONEINHEITEN 
      */
-    public static int gibKartoneinheiten() {
+    public static int gibKartoneinheiten() 
+    {
         return KARTONEINHEITEN;
     }
 
-    /** 
-     * @return Produktionszeit in Minuten 
-     */
-    public static int gibProduktionszeit() {
+    /**
+     * Mit dieser Methode wird die benötigte Produktionszeit ausgegeben
+     * 
+     * @return PRODUKTIONSZEIT
+     */ 
+    public static int gibProduktionszeit() 
+    {
         return PRODUKTIONSZEIT;
     }
 }

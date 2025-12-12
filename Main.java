@@ -1,9 +1,10 @@
+
 /**
- * Die Klasse Main demonstriert das Verhalten der Fabrik
- * für Aufgabe 2 (Materialprüfung, Beschaffungszeit, Lieferzeit).
+ * Die Klasse Main ist die Hauptklasse des Programms.
+ * Hier befindet sich die main Methode zum Starten des Programms.
  *
- * @author Gruppe 17
- * @version 04.12.2025
+ * @author Alex Marchese
+ * @version 08.12.2025
  */
 public class Main {
 
@@ -11,31 +12,36 @@ public class Main {
 
         Fabrik testFabrik = new Fabrik();
 
-        System.out.println("Willkommen bei der AEKI Fabrik – Aufgabe 2 Simulation.\n");
+        System.out.println("Willkommen bei der AEKI Fabrik.");
 
-        // Best 1: Kleine Bestellung -> Lager reicht aus -> Beschaffung = 0
-        System.out.println("=== Bestellung 1: 10 Standardtüren, 5 Premiumtüren ===");
-        testFabrik.bestellungAufgeben(10, 5);
-        testFabrik.bestellungenAusgeben();
-        System.out.println();
-
-        // Best 2: Mittlere Bestellung -> Lager könnte noch reichen
-        System.out.println("=== Bestellung 2: 30 Standardtüren, 20 Premiumtüren ===");
-        testFabrik.bestellungAufgeben(30, 20);
-        testFabrik.bestellungenAusgeben();
-        System.out.println();
-
-        // Best 3: Grosse Bestellung -> Lager reicht sicher NICHT -> Beschaffung = 2
-        System.out.println("=== Bestellung 3: 200 Standardtüren, 100 Premiumtüren ===");
-        testFabrik.bestellungAufgeben(200, 100);
-        testFabrik.bestellungenAusgeben();
-        System.out.println();
-
-        // Best 4: Noch eine grosse Bestellung -> Lager wurde aufgefüllt -> kann wieder reichen oder nicht
-        System.out.println("=== Bestellung 4: 50 Standardtüren, 10 Premiumtüren ===");
-        testFabrik.bestellungAufgeben(50, 10);
+        // Best 1: 2, 2
+        testFabrik.bestellungAufgeben(2, 2);
         testFabrik.bestellungenAusgeben();
 
-        System.out.println("\nSimulation abgeschlossen.");
+        // Best 2: 5, 0
+        testFabrik.bestellungAufgeben(5, 0);
+        testFabrik.bestellungenAusgeben();
+
+        // Best 3: 0, 6
+        testFabrik.bestellungAufgeben(0, 6);
+        testFabrik.bestellungenAusgeben();
+
+        // Best 4: -5, 6
+        testFabrik.bestellungAufgeben(-5, 6);
+        testFabrik.bestellungenAusgeben();
+
+        // Best 5: 1000000, 6
+        testFabrik.bestellungAufgeben(1000000, 6);
+        testFabrik.bestellungenAusgeben();
+
+        // Best 6: 0, 0
+        testFabrik.bestellungAufgeben(0, 0);
+        testFabrik.bestellungenAusgeben();
+
+        // Best 7: 0, 21
+        testFabrik.bestellungAufgeben(0, 21);
+        testFabrik.bestellungenAusgeben();
+
     }
+
 }

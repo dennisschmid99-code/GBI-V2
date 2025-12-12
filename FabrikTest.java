@@ -1,113 +1,158 @@
+
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Testklasse für die Klasse Fabrik.
- * Geprüft wird die Bestellaufnahme, Fehlerbehandlung und Lieferzeitberechnung
- * unter Berücksichtigung der neuen Lagerkapazitäten.
+ * Klasse FabrikTest
  *
- * @author Gruppe 17
- * @version 04.12.2025
+ * @author Alex Marchese
+ * @version 08.12.2025
  */
 public class FabrikTest {
+    String nameTestClasse = "FabrikTest"; // Name der Testklasse
 
-    private Fabrik fabrik;
+    /**
+     * Konstruktor von FabrikTest
+     */
+    public FabrikTest() {
+    }
 
+    /**
+     * Anweisungen vor jedem Testlauf
+     */
     @BeforeEach
     public void setUp() {
-        fabrik = new Fabrik(); // Erstellt Fabrik mit neuem, vollem Lager
+        System.out.println("Testlauf " + nameTestClasse + " Start");
+        System.out.println();
     }
 
+    /**
+     * Anweisungen nach jedem Testlauf
+     */
     @AfterEach
     public void tearDown() {
+        System.out.println();
+        System.out.println("Testlauf " + nameTestClasse + " Ende");
+        System.out.println("------------------------");
     }
 
-    /**
-     * Testet eine normale Bestellung.
-     * Erwartung: Beschaffungszeit 0 (da Lager voll), Bestellung bestätigt.
-     */
     @Test
+    /**
+     * Testet die Aufgabe einer Bestellung mit zugelassenen Werten
+     */
     public void testeBestellung() {
-        fabrik.bestellungAufgeben(2, 5);
-        
-        // Da es die erste Bestellung ist, muss sie an Index 0 sein
-        Bestellung b = fabrik.gibBestellungen().get(0);
-        
-        assertEquals(0, b.gibBeschaffungsZeit(), "Lager ist voll, Beschaffung muss 0 sein.");
-        assertTrue(b.gibBestellBestaetigung(), "Bestellung sollte bestätigt sein.");
+
+        // Instanzierung einer Fabrik
+        Fabrik testFabrik = new Fabrik();
+        testFabrik.bestellungAufgeben(2, 5);
+
+        // Überprüfung, dass 3 gültige Bestellungen getätigt wurden
+        assertEquals(1, testFabrik.gibBestellungen().size());
+
+        Bestellung ersteBestellung = testFabrik.gibBestellungen().get(0);
+
+        // Überprüfung, dass die Arraylist die Produkte enthält. Es müssen genau 7 sein
+        assertEquals(7, ersteBestellung.gibBestellteProdukte().size());
+
+        // Kontrolle, dass es genau 2 Standartüren und 5 Premiumtüren sind
+        int anzahlStandardTueren = 0;
+        int anzahlPremiumtueren = 0;
+
+        for (Produkt produkt : ersteBestellung.gibBestellteProdukte()) {
+            if (produkt instanceof Standardtuer) {
+                anzahlStandardTueren++;
+            } else if (produkt instanceof Premiumtuer) {
+                anzahlPremiumtueren++;
+            }
+        }
+
+        assertEquals(2, anzahlStandardTueren);
+        assertEquals(5, anzahlPremiumtueren);
+
+        System.out.println(
+                "Test Bestellung mit erlaubten Werten. Produkte wurden bestellt");
+
     }
 
-    /**
-     * Testet Fehleingaben (0 oder negative Anzahl).
-     * Erwartung: Es wird keine Bestellung zur Liste hinzugefügt.
-     */
     @Test
+    /**
+     * Testet, dass bei der Eingabe von unzulässigen Werten, keine Bestellung
+     * aufgegeben wird
+     */
     public void testeBestellungFalsch() {
-        // Fall 1: Alles 0
-        fabrik.bestellungAufgeben(0, 0);
-        
-        // Fall 2: Negativ
-        fabrik.bestellungAufgeben(-5, 1);
-        
-        // Die Liste muss leer bleiben
-        assertEquals(0, fabrik.gibBestellungen().size(), "Ungültige Bestellungen dürfen nicht gespeichert werden.");
+
+        // Instanzierung einer Fabrik
+        Fabrik testFabrik = new Fabrik();
+        // Beide Werte von Türen Null
+        testFabrik.bestellungAufgeben(0, 0);
+        // Zu hohe Bestellmenge
+        testFabrik.bestellungAufgeben(15_000, 0);
+        // Ein Negativwert
+        testFabrik.bestellungAufgeben(-5, 0);
+
+        // Kontrolle, dass keine Bestellung durchgegangen ist
+        assertEquals(0, testFabrik.gibBestellungen().size());
+
+        System.out.println(
+                "Test Bestellung mit unerlaubten Argumenten. Nichts wurde bestellt");
+
     }
 
-    /**
-     * Testet die exakte Berechnung der Lieferzeit.
-     * Szenario: 2 Standard, 5 Premium. Lager voll.
-     */
     @Test
-    public void testeBestellungMitLieferzeit() {
-        int s = 2; 
-        int p = 5;
-        fabrik.bestellungAufgeben(s, p);
-        
-        Bestellung b = fabrik.gibBestellungen().get(0);
-        
-        // Produktionszeit berechnen
-        int produktionsMinuten = s * Standardtuer.gibProduktionszeit() + p * Premiumtuer.gibProduktionszeit();
-        float produktionsTage = produktionsMinuten / 1440.0f;
-        
-        // Erwartung: Prod + 0 Beschaffung + 1 Tag Standardlieferzeit
-        float erwarteteZeit = produktionsTage + 0 + 1;
-        
-        assertEquals(erwarteteZeit, b.gibLieferzeit(), 0.0001f, "Lieferzeitberechnung falsch.");
-    }
-
     /**
-     * Testet ein Szenario mit großer Menge (1000 Türen).
-     * Da das Lager jetzt 1000 Einheiten Farbe hat, reicht es für 500 Türen (1000 Farbe).
-     * ACHTUNG: Hier testen wir 1000 Türen -> Bedarf 2000 Farbe.
-     * Lager hat 1000. Es fehlen 1000.
-     * Nachbestellung: 1000 Fehlmenge / 1000 Kapazität = 1 Zyklus.
-     * Zeit: 1 * 2 Tage = 2 Tage.
+     * Testet, dass die in Abgabe 2 neu implementierten Befehle korrket
+     * funktionieren
      */
-    @Test
-    public void testeBestellungMitNachbestellung() {
-        int s = 1000; 
-        int p = 0; 
-        // 1000 Standardtüren brauchen 2000 Farbe.
-        // Lager hat 1000 Farbe.
-        // Es fehlen 1000 Farbe. Lieferant liefert 1000 pro Ladung.
-        // Also 1 Zyklus nötig -> 2 Tage Beschaffungszeit.
+    public void testeBestellungAufgeben() {
 
-        fabrik.bestellungAufgeben(s, p);
-        Bestellung b = fabrik.gibBestellungen().get(0);
+        // Instanzierung einer Fabrik
+        Fabrik testFabrik = new Fabrik();
 
-        // Prüfung Beschaffungszeit
-        assertEquals(2, b.gibBeschaffungsZeit(), 
-            "Bei 1000 Türen (2000 Farbe) und 1000 Lager muss 1x nachbestellt werden (2 Tage).");
+        /// Genügende Materialien auf Lager (bei 2 StandardT und 5 PremiumT der Fall)
 
-        // Prüfung Gesamtlieferzeit
-        int produktionsMinuten = s * Standardtuer.gibProduktionszeit();
-        float produktionsTage = produktionsMinuten / 1440.0f;
+        testFabrik.bestellungAufgeben(2, 5);
+
+        Bestellung ersteBestellung = testFabrik.gibBestellungen().get(0);
+
+        // Kontrolle der Beschaffungszeit
+        assertEquals(0, ersteBestellung.gibBeschaffungsZeit());
+
+        // Kontrolle, dass das Lager nicht aufgefüllt wird
+        assertEquals(0, testFabrik.gibLagerAuffuellungen());
+
+        // Kontrolle der Lieferzeit
+        assertEquals(1.12f, Math.round(ersteBestellung.gibLieferzeit() * 100) / 100f); // 0 + (10 * 2 + 30 * 5) / (60 *
+                                                                                       // 24) + 1 -> runden auf 2
+                                                                                       // Kommastellen: 1.12
+        // Kontrolle, dass Bestellung bestätigt wird
+        assertTrue(ersteBestellung.gibBestellBestaetigung());
+
+        /// Ungenügende Materialien auf Lager (bei 21 PremiumT der Fall) -> bei
+        /// den Glaseinheiten: 100 (auf Lager) - 5 * 21 = -5 => nachbestellen.
+        /// N.B. eingentlich werden bei der ersten Bestellung schon 25 Glaseinheiten
+        /// verwendet. Da noch nicht produziert wird (Abgabe 3), werden sie auch nicht
+        /// abgezogen
+
+        testFabrik.bestellungAufgeben(0, 21);
+
+        Bestellung zweiteBestellung = testFabrik.gibBestellungen().get(1);
+
+        // Kontrolle der Beschaffungszeit
+        assertEquals(2, zweiteBestellung.gibBeschaffungsZeit());
+
+        // Kontrolle, dass das Lager aufgefüllt wird
+        assertEquals(1, testFabrik.gibLagerAuffuellungen());
+
+        // Kontrolle der Lieferzeit
+        assertEquals(3.44f, Math.round(zweiteBestellung.gibLieferzeit() * 100) / 100f); // 2 + (30 * 21) / (60 *
+                                                                                        // 24) + 1 -> runden auf 2
+                                                                                        // Kommastellen: 3.44
+        // Kontrolle, dass Bestellung bestätigt wird
+        assertTrue(zweiteBestellung.gibBestellBestaetigung());
         
-        // 2 Tage Beschaffung + 1 Tag Standardlieferung
-        float erwarteteLieferzeit = produktionsTage + 2 + 1;
-
-        assertEquals(erwarteteLieferzeit, b.gibLieferzeit(), 0.0001f, "Gesamtlieferzeit mit Nachbestellung falsch.");
+        System.out.println(
+                "Test für Abgabe 2 angepasste Methode bestellungAufgeben()");
     }
 }

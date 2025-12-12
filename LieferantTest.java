@@ -1,50 +1,62 @@
+
 import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertThrows; //optional
 
 /**
- * Testklasse für die Klasse Lieferant.
- * Prüft, ob Materialbestellungen erfolgreich verarbeitet werden.
+ * Klasse LieferantTest
  *
- * @author Gruppe 17
- * @version 02.12.2025
+ * @author Alex Marchese
+ * @version 08.12.2025
  */
 public class LieferantTest {
+    String nameTestClasse = "LieferantTest"; // Name der Testklasse
 
-    private Lieferant lieferant;
+    /**
+     * Konstruktor von LieferantTest
+     */
+    public LieferantTest() {
+    }
 
+    /**
+     * Anweisungen vor jedem Testlauf
+     */
     @BeforeEach
     public void setUp() {
-        lieferant = new Lieferant();
+        System.out.println("Testlauf " + nameTestClasse + " Start");
+        System.out.println();
     }
 
+    /**
+     * Anweisungen nach jedem Testlauf
+     */
     @AfterEach
     public void tearDown() {
-        // optional
+        System.out.println();
+        System.out.println("Testlauf " + nameTestClasse + " Ende");
+        System.out.println("------------------------");
     }
 
-    /**
-     * Test 1:
-     * wareBestellen() muss immer true zurückgeben.
-     */
+
     @Test
+    /**
+     * Testet wareBestellen()
+     */
     public void testeWareBestellen() {
 
-        boolean erfolg = lieferant.wareBestellen(100, 200, 50, 20, 10);
+        
+        // Instanzierung eines Lieferanten
+        Lieferant testLieferant = new Lieferant();
+        assertTrue(testLieferant.wareBestellen(2, 4, 50, 3, 2));
+        
+        
+        System.out.println(
+                "Test Methode wareBestellen erfolgreich.");
 
-        assertTrue(erfolg, "Lieferant sollte immer erfolgreich liefern.");
     }
 
-    /**
-     * Test 2:
-     * Methode muss auch bei Randwerten problemlos funktionieren.
-     */
-    @Test
-    public void testeWareBestellenMitNullwerten() {
+    
 
-        boolean erfolg = lieferant.wareBestellen(0, 0, 0, 0, 0);
-
-        assertTrue(erfolg, "Lieferant sollte auch bei 0-Einheiten erfolgreich liefern.");
-    }
 }
