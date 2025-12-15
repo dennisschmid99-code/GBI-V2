@@ -8,7 +8,7 @@ Das System realisiert ein Make-to-Order (MTO) Modell für Standard- und
 Premiumtüren. Es demonstriert objektorientierte Konzepte wie Vererbung,
 Kapselung und Fehlerbehandlung.
 
-VERSION oder DATUM: Version 4.0 (23.11.2025)
+VERSION oder DATUM: Version 4.0 (07.12.2025)
 
 WIE IST DAS PROJEKT ZU STARTEN:
 Die Simulation kann am einfachsten über die Hauptklasse gestartet werden:

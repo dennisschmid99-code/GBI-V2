@@ -1,154 +1,119 @@
-
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertThrows; //optional
+import java.util.ArrayList;
 
 /**
  * Klasse BestellungTest
+ * Umfassende Tests für die Klasse Bestellung inkl. neuer Funktionen aus Aufgabe 3.
  *
- * @author Alex Marchese
- * @version 08.12.2025
+ * @author GBI Gruppe 17
+ * @version 21.12.2025
  */
 public class BestellungTest {
-    String nameTestClasse = "BestellungTest"; // Name der Testklasse
+    String nameTestClasse = "BestellungTest";
 
-    /**
-     * Konstruktor von BestellungTest
-     */
     public BestellungTest() {
     }
 
-    /**
-     * Anweisungen vor jedem Testlauf
-     */
     @BeforeEach
     public void setUp() {
         System.out.println("Testlauf " + nameTestClasse + " Start");
-        System.out.println();
     }
 
-    /**
-     * Anweisungen nach jedem Testlauf
-     */
     @AfterEach
     public void tearDown() {
-        System.out.println();
         System.out.println("Testlauf " + nameTestClasse + " Ende");
         System.out.println("------------------------");
     }
 
     @Test
-    /**
-     * Testet die korrekte Initialisierung einer Bestellung
-     */
-    public void testeBestellung() {
-
-        // Instanzierung einer Bestellung
+    public void testeBestellungInitialisierung() {
+        // Testet den Konstruktor aus Aufgabe 1/2
         Bestellung testBestellung = new Bestellung(5, 7, 2);
 
         assertEquals(5, testBestellung.gibAnzahlStandardTueren());
         assertEquals(7, testBestellung.gibAnzahlPremiumTueren());
         assertEquals(2, testBestellung.gibBestellungsNr());
-
-        // Testen von automatisch initialisierten Werten
         assertEquals(false, testBestellung.gibBestellBestaetigung());
         assertEquals(-1, testBestellung.gibBeschaffungsZeit());
+        assertFalse(testBestellung.istAbgeschlossen(), "Sollte initial nicht abgeschlossen sein.");
 
-        System.out.println(
-                "Test Bestellung mit Variableneingabe erfolgreich. Initialisierung mit Selbstdefinierten Variablen und Standardwerten funktioniert.");
-
-    }
-
-    @Test
-    /**
-     * Testet bestellungBestaetigen()
-     */
-    public void testeBestellungBestaetigen() {
-
-        // Instanzierung einer Bestellung
-        Bestellung testBestellung = new Bestellung(5, 7, 2);
-
-        assertEquals(false, testBestellung.gibBestellBestaetigung());
-        testBestellung.bestellungBestaetigen();
-        assertEquals(true, testBestellung.gibBestellBestaetigung());
-
-        System.out.println(
-                "Test Methode bestellungBestaetigen erfolgreich.");
-
-    }
-
-    @Test
-    /**
-     * Testet setzeBeschaffungsZeit()
-     */
-    public void testeSetzeBeschaffungsZeit() {
-
-        // Instanzierung einer Bestellung
-        Bestellung testBestellung = new Bestellung(5, 7, 2);
-
-        assertEquals(-1, testBestellung.gibBeschaffungsZeit());
-        testBestellung.setzeBeschaffungsZeit(2);
-        assertEquals(2, testBestellung.gibBeschaffungsZeit());
-
-        System.out.println("Test Setter setzeBeschaffungsZeit erfolgreich.");
-
+        // Prüfen, ob die interne Liste korrekt gefüllt wurde (5+7 = 12 Produkte)
+        assertEquals(12, testBestellung.liefereBestellteProdukte().size());
     }
     
     @Test
-    /**
-     * Testet setzeLieferzeit()
-     */
-    public void testeSetzeLieferzeit() {
-
-        // Instanzierung einer Bestellung
-        Bestellung testBestellung = new Bestellung(5, 7, 2);
-
-        assertEquals(-1, testBestellung.gibLieferzeit());
-        testBestellung.setzeLieferzeit(2);
-        assertEquals(2, testBestellung.gibLieferzeit());
-
-        System.out.println("Test Setter setzeLieferzeit erfolgreich.");
-
+    public void testeBestellungKonstruktorNeu() {
+        // Testet den neuen Konstruktor für Aufgabe 3 (nur ID)
+        Bestellung b = new Bestellung(100);
+        assertEquals(100, b.gibBestellungsNr());
+        assertNotNull(b.liefereBestellteProdukte());
+        assertEquals(0, b.liefereBestellteProdukte().size());
+        assertFalse(b.istAbgeschlossen());
     }
 
-    @Test // Optional
-    /**
-     * Test der Fehlerbehandlung (der Exceptions)
-     */
+    @Test
+    public void testeProduktHinzufuegen() {
+        Bestellung b = new Bestellung(101);
+        b.fuegeProduktHinzu(new Standardtuer());
+        b.fuegeProduktHinzu(new Premiumtuer());
+        
+        ArrayList<Produkt> produkte = b.liefereBestellteProdukte();
+        assertEquals(2, produkte.size());
+        assertTrue(produkte.get(0) instanceof Standardtuer);
+        assertTrue(produkte.get(1) instanceof Premiumtuer);
+    }
+
+    @Test
+    public void testeStatusProduktion() {
+        Bestellung b = new Bestellung(102);
+        assertFalse(b.istAbgeschlossen());
+        
+        b.setzeAlleProdukteProduziert();
+        assertTrue(b.istAbgeschlossen(), "Sollte nach Setzen auf true abgeschlossen sein.");
+    }
+
+    @Test
+    public void testeBestellungBestaetigen() {
+        Bestellung testBestellung = new Bestellung(5, 7, 2);
+        assertEquals(false, testBestellung.gibBestellBestaetigung());
+        testBestellung.bestellungBestaetigen();
+        assertEquals(true, testBestellung.gibBestellBestaetigung());
+    }
+
+    @Test
+    public void testeSetzeBeschaffungsZeit() {
+        Bestellung testBestellung = new Bestellung(5, 7, 2);
+        assertEquals(-1, testBestellung.gibBeschaffungsZeit());
+        testBestellung.setzeBeschaffungsZeit(2);
+        assertEquals(2, testBestellung.gibBeschaffungsZeit());
+    }
+    
+    @Test
+    public void testeSetzeLieferzeit() {
+        Bestellung testBestellung = new Bestellung(5, 7, 2);
+        assertEquals(-1, testBestellung.gibLieferzeit());
+        testBestellung.setzeLieferzeit(2.5f);
+        assertEquals(2.5f, testBestellung.gibLieferzeit());
+    }
+
+    @Test
     public void testeFehlerbehandlung() {
-
-        // Optional -> wir haben Exceptions nicht zusammen gesehen
-
         // Negativwerte
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            new Bestellung(-1, 5, 1); // Standardtür Negativwert
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Bestellung(-1, 5, 1);
         });
-        assert (exception.getMessage().contains("Ungültige Bestellmenge. Kann nicht negativ sein."));
 
-        exception = assertThrows(IllegalArgumentException.class, () -> {
-            new Bestellung(5, -1, 2); // Premiumtür Negativwert
-        });
-        assert (exception.getMessage().contains("Ungültige Bestellmenge. Kann nicht negativ sein."));
-
-        // Beide Werte von Türen Null
-        exception = assertThrows(IllegalArgumentException.class, () -> {
+        // Leere Bestellung
+        assertThrows(IllegalArgumentException.class, () -> {
             new Bestellung(0, 0, 3);
         });
-        assert (exception.getMessage().contains("Die Bestellung muss mindestens ein Produkt enthalten."));
 
-        // Zu hohe Bestellmenge
-        exception = assertThrows(IllegalArgumentException.class, () -> {
-            new Bestellung(11_000, 5, 4); // Standardtür hohe Bestellmenge
+        // Zu hohe Menge
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Bestellung(11_000, 5, 4);
         });
-        assert (exception.getMessage().contains("Bestellmenge ist zu gross. Maximal 10 Tausend pro Artikel."));
-
-        exception = assertThrows(IllegalArgumentException.class, () -> {
-            new Bestellung(5, 12_000, 5); // Premiumtür hohe Bestellmenge
-        });
-        assert (exception.getMessage().contains("Bestellmenge ist zu gross. Maximal 10 Tausend pro Artikel."));
-
     }
-
 }

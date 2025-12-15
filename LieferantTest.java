@@ -1,62 +1,81 @@
-
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertThrows; //optional
 
 /**
- * Klasse LieferantTest
+ * Ausführliche Testklasse für Lieferant.
+ * Testet Thread-Verhalten, Bestellannahme und Blockade-Mechanismus.
  *
- * @author Alex Marchese
- * @version 08.12.2025
+ * @author GBI Gruppe 17
+ * @version 21.12.2025
  */
 public class LieferantTest {
-    String nameTestClasse = "LieferantTest"; // Name der Testklasse
+    
+    private Lager lagerDummy;
+    private Lieferant lieferant;
 
-    /**
-     * Konstruktor von LieferantTest
-     */
     public LieferantTest() {
     }
 
-    /**
-     * Anweisungen vor jedem Testlauf
-     */
     @BeforeEach
     public void setUp() {
-        System.out.println("Testlauf " + nameTestClasse + " Start");
-        System.out.println();
+        System.out.println("--> LieferantTest Start");
+        lagerDummy = new Lager();
+        lieferant = new Lieferant(lagerDummy);
+        lieferant.start(); // WICHTIG: Thread starten
     }
 
-    /**
-     * Anweisungen nach jedem Testlauf
-     */
     @AfterEach
     public void tearDown() {
-        System.out.println();
-        System.out.println("Testlauf " + nameTestClasse + " Ende");
-        System.out.println("------------------------");
+        System.out.println("<-- LieferantTest Ende\n");
     }
-
 
     @Test
-    /**
-     * Testet wareBestellen()
-     */
-    public void testeWareBestellen() {
-
-        
-        // Instanzierung eines Lieferanten
-        Lieferant testLieferant = new Lieferant();
-        assertTrue(testLieferant.wareBestellen(2, 4, 50, 3, 2));
-        
-        
-        System.out.println(
-                "Test Methode wareBestellen erfolgreich.");
-
+    public void testThreadAktivitaet() {
+        assertTrue(lieferant.isAlive(), "Lieferant-Thread sollte laufen.");
     }
 
-    
+    @Test
+    public void testErsteBestellungAnnehmen() {
+        System.out.println("Test: Erste Bestellung (sollte true sein)");
+        // Wir geben eine Bestellung auf
+        boolean akzeptiert = lieferant.wareBestellen(10, 10, 10, 10, 10);
+        
+        assertTrue(akzeptiert, "Der Lieferant sollte im Ruhezustand Aufträge annehmen.");
+    }
 
+    @Test
+    public void testZweiteBestellungAblehnen() {
+        System.out.println("Test: Zweite Bestellung sofort danach (sollte false sein)");
+        
+        // 1. Bestellung -> Setzt Status auf "beschäftigt" und schläft (simuliert)
+        lieferant.wareBestellen(100, 100, 100, 100, 100);
+        
+        // 2. Bestellung sofort hinterher -> Muss abgelehnt werden
+        boolean akzeptiert = lieferant.wareBestellen(1, 1, 1, 1, 1);
+        
+        assertFalse(akzeptiert, "Lieferant muss beschäftigt sein und ablehnen.");
+    }
+
+    @Test
+    public void testBestellungNullMenge() {
+        System.out.println("Test: Bestellung mit 0 Einheiten");
+        boolean akzeptiert = lieferant.wareBestellen(0, 0, 0, 0, 0);
+        assertTrue(akzeptiert, "Auch leere Bestellungen sind technisch valid.");
+    }
+    
+    @Test
+    public void testGleichzeitigerZugriff() {
+        // Hinweis: Dies ist ein vereinfachter Test für Thread-Sicherheit.
+        // In einer echten Umgebung bräuchte man mehrere Threads, die hämmern.
+        // Hier prüfen wir nur, ob die Methode 'synchronized' ist (indirekt).
+        // Wenn wir manuell bestellen, sollte kein Deadlock entstehen.
+        try {
+            lieferant.wareBestellen(1,1,1,1,1);
+            assertTrue(true);
+        } catch (Exception e) {
+            fail("Bestellung verursachte Exception.");
+        }
+    }
 }

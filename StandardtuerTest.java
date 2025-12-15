@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Klasse StandardtuerTest
  *
- * @author Alex Marchese
+ * @author GBI Gruppe 17
  * @version 08.12.2025
  */
 public class StandardtuerTest {

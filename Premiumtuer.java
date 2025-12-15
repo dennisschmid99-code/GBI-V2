@@ -2,8 +2,8 @@
 /**
  * Klasse Premiumtuer beinhaltet die spezifischen Informationen einer Standardtuer
  *
- * @author Alex Marchese
- * @version 08.12.2025
+ * @author GBI Gruppe 17
+ * @version 21.12.2025
  */
 public class Premiumtuer extends Produkt 
 {

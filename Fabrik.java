@@ -1,129 +1,111 @@
 import java.util.ArrayList;
 
 /**
- * Klasse Fabrik beinhaltet die Methoden der Fabrik
+ * Die Klasse Fabrik ist der Haupt-Einstiegspunkt. Sie initialisiert die Infrastruktur
+ * (Lager, Lieferant, Manager) und ermöglicht die Eingabe von Bestellungen.
  *
- * @author Alex Marchese
- * @version 08.12.2025
+ * @author GBI Gruppe 17
+ * @version 21.12.2025
  */
 public class Fabrik {
-    // Die Liste bestellteProdukte enthält alle Produkte, welche bestellt worden
-    // sind
-    private ArrayList<Bestellung> bestellungen;
-    private int bestellungsNr;
-    private Lager lager;
 
-    private int lagerAuffuellungen; // Gibt an wie häufig das Lager aufgefüllt wurde (wird für die Unittests
-                                    // benötigt)
+    // Die zentralen Komponenten der Fabrik
+    private Lager lager;
+    private Lieferant lieferant;
+    private Produktions_Manager produktionsManager;
+
+    // Liste aller jemals getätigten Bestellungen (Historie)
+    private ArrayList<Bestellung> alleBestellungen;
+    
+    // Zähler für eindeutige Bestellnummern
+    private int bestellungsNrCounter;
 
     /**
-     * Konstruktor der Klasse
-     * Hier werden alle globale Variablen initialisiert
+     * Konstruktor der Fabrik.
+     * Erstellt die Komponenten, verknüpft sie und startet die Threads.
      */
     public Fabrik() {
-        bestellungen = new ArrayList<Bestellung>();
-        bestellungsNr = 0; 
-        lager = new Lager();
+        // 1. Listen und Zähler initialisieren
+        this.alleBestellungen = new ArrayList<Bestellung>();
+        this.bestellungsNrCounter = 1;
 
-        lagerAuffuellungen = 0;
+        // 2. Lager erstellen
+        this.lager = new Lager();
+
+        // 3. Lieferant erstellen (benötigt Referenz aufs Lager zum Abliefern)
+        this.lieferant = new Lieferant(lager);
+        
+        // WICHTIG: Das Lager muss auch den Lieferanten kennen, um bestellen zu können.
+        this.lager.setzeLieferant(lieferant);
+        
+        // Thread des Lieferanten starten (damit er auf Bestellungen warten kann)
+        this.lieferant.start(); 
+
+        // 4. Produktionsmanager erstellen (benötigt Lager für Materialentnahme)
+        this.produktionsManager = new Produktions_Manager(lager);
+        
+        // Thread des Managers starten (damit er Bestellungen abarbeiten kann)
+        this.produktionsManager.start();
+
+        System.out.println("Fabrik: System hochgefahren. Threads gestartet.");
     }
 
     /**
-     * Mit dieser Methode wird eine Bestellung aufgegeben
-     * 
-     * @param standardTueren Anzahl zu bestellender Standardtüren
-     * @param premiumTueren  Anzahl zu bestellender Premiumtüren
+     * Nimmt eine Bestellung entgegen, erzeugt die Produkte und übergibt sie an den Manager.
+     * * @param anzahlPremium   Anzahl der gewünschten Premiumtüren
+     * @param anzahlStandard  Anzahl der gewünschten Standardtüren
      */
-    public void bestellungAufgeben(int standardTueren, int premiumTueren) {
-
-        // Fehlerbehandlung
-        if (standardTueren < 0 || premiumTueren < 0) { // Sobald einer der Werte negativ ist
-            System.out.println("\nUngültige Bestellmenge. Kann nicht negativ sein.");
-        } else if (standardTueren == 0 && premiumTueren == 0) { // Wenn beide Werte Null sind
-            System.out.println("\nDie Bestellung muss mindestens ein Produkt enthalten.");
-        } else if (standardTueren > 10_000 || premiumTueren > 10_000) { // Sobald einer der Werte mehr als 10k ist
-            System.out.println("\nBestellmenge ist zu gross. Maximal 10 Tausend pro Artikel.");
-        } else {
-
-            bestellungsNr++; // can be done also with the other ways (+= 1 or bestellungsNr = bestellungsNr +
-                             // 1)
-
-            Bestellung bestellung = new Bestellung(standardTueren, premiumTueren, bestellungsNr);
-
-            // Berechnung und Setzen der Beschaffungszeit
-            int beschaffungsZeitMaterialien = lager.gibBeschaffungsZeit(bestellung);
-            bestellung.setzeBeschaffungsZeit(beschaffungsZeitMaterialien);
-
-            // Der Lagerbestand wird aufgefüllt, sobald der Bestand für einen Auftrag nicht
-            // mehr ausreicht. Konkret: wenn die Beschaffungszeit > 0 ist.
-            // Andere Ansätze sind auch zugelassen, solange sie begründet und damit
-            // nachvollziehnar sind
-            if (beschaffungsZeitMaterialien > 0) {
-                lagerAuffuellen();
-            }
-
-            // Brechnung und Setzen der Lieferzeit. Lieferzeit = beschaffungsZeitMaterialien
-            // + totale Produktionszeit + Standardlieferzeit (1 Tag)
-            bestellung.setzeLieferzeit(bestellung.gibBeschaffungsZeit() +
-                (Standardtuer.gibProduktionszeit() * bestellung.gibAnzahlStandardTueren() +
-                    Premiumtuer.gibProduktionszeit() * bestellung.gibAnzahlPremiumTueren()) / (60f * 24) +
-                1); // 60f, da sonst die Lösung keinen Dezimalwert enthält. Nicht 60.0 da sonst
-                      // double (man müsste es dann zu float konvertieren)
-
-            // Bestellung bestätigen
-            bestellung.bestellungBestaetigen();
-            System.out.println("Bestellung aufgegeben");
-
-            // Bestellung wird hinzugefügt
-            bestellungen.add(bestellung);
+    public void bestellungAufgeben(int anzahlPremium, int anzahlStandard) {
+        // Neue Bestellung mit eindeutiger ID anlegen
+        Bestellung neueBestellung = new Bestellung(bestellungsNrCounter++);
+        
+        // Standardtüren hinzufügen (benötigt Klasse Standardtuer aus Aufgabe 1/2)
+        for (int i = 0; i < anzahlStandard; i++) {
+            neueBestellung.fuegeProduktHinzu(new Standardtuer());
         }
-    }
-
-    /**
-     * Mit dieser Methode werden alle Bestellungen ausgegeben
-     * 
-     */
-    public void bestellungenAusgeben() {
-        System.out.println("\nIn der Fabrik gibt es gerade folgende Bestellungen.");
-        for (Bestellung bestellung : bestellungen) {
-            System.out.println("Bestellung Nummer " + bestellung.gibBestellungsNr()
-                    + " Standardtüren: " + bestellung.gibAnzahlStandardTueren()
-                    + " Premiumtüren: " + bestellung.gibAnzahlPremiumTueren()
-                    + " Beschaffungszeit: " + Math.round(bestellung.gibBeschaffungsZeit()) + " Tage "
-                    + " Lieferzeit: " + Math.round(bestellung.gibLieferzeit()) + " Tage "
-                    + " Bestellbestätigung: " + bestellung.gibBestellBestaetigung());
+        
+        // Premiumtüren hinzufügen (benötigt Klasse Premiumtuer aus Aufgabe 1/2)
+        for (int i = 0; i < anzahlPremium; i++) {
+            neueBestellung.fuegeProduktHinzu(new Premiumtuer());
         }
+
+        // Zur Historie hinzufügen
+        alleBestellungen.add(neueBestellung);
+
+        System.out.println("Fabrik: Bestellung " + neueBestellung.gibBestellungsNr() + 
+                           " aufgegeben (" + anzahlStandard + " Std, " + anzahlPremium + " Prem).");
+
+        // Bestellung an den Produktionsmanager zur asynchronen Verarbeitung übergeben
+        produktionsManager.fuegeZuVerarbeitendeBestellungenHinzu(neueBestellung);
     }
 
     /**
-     * Methode lagerAuffuellen sorgt dafür, dass das Lager durch Aufruf der Methode
-     * des Lagers aufgefüllt wird und dass der Lagerbestand angegeben wird
-     */
-    public void lagerAuffuellen() {
-        lager.lagerAuffuellen();
-        lager.lagerBestandAusgeben();
-        lagerAuffuellungen++;
-    }
-
-    /**
-     * Mit dieser Methode wird die Arrayliste mit den Bestellungen zurückgegeben.
-     * Wird für die Unit Testklasse FabrikTest verwendet
-     * 
-     * @return bestellteProdukte wird retourniert
+     * Gibt die Liste aller Bestellungen zurück.
+     * @return ArrayList mit Bestellungen
      */
     public ArrayList<Bestellung> gibBestellungen() {
-        return bestellungen;
+        return alleBestellungen;
     }
 
     /**
-     * Diese Methode wird verwendet, um anzugeben, wie oft das Lager aufgefüllt
-     * wurde.
-     * Wird für die Unit Testklasse FabrikTest verwendet
-     * 
-     * @return lagerAuffuellungen wird retourniert
+     * Main-Methode zum Starten und Testen der Anwendung.
      */
-    public int gibLagerAuffuellungen() {
-        return lagerAuffuellungen;
-    }
+    public static void main(String[] args) {
+        Fabrik meineFabrik = new Fabrik();
 
+        // Szenario 1: Eine normale Bestellung aufgeben
+        meineFabrik.bestellungAufgeben(2, 3); // 2 Premium, 3 Standard
+
+        // Wir warten kurz, um zu sehen, wie die Produktion startet
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {}
+
+        // Szenario 2: Eine weitere Bestellung nachschieben
+        System.out.println("\n--- Neue Bestellung kommt rein ---");
+        meineFabrik.bestellungAufgeben(1, 1);
+        
+        // Hinweis: Das Programm läuft weiter, da die Threads (Manager, Lieferant) noch leben.
+        // Beenden Sie es manuell in BlueJ oder über die Konsole.
+    }
 }
