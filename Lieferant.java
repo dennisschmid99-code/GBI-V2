@@ -1,131 +1,105 @@
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 /**
- * Diese Klasse wird verwendet, um die Lieferzeiten des Lieferanten und die
- * Bestellung über diesen zu simulieren.
- * * Die Klasse arbeitet nun als Thread, um die Lieferzeit asynchron zu simulieren.
- * 1 Stunde in der Simulation entspricht 1 Sekunde in Echtzeit.
- * Eine Lieferung dauert 2 Tage (48 Stunden = 48 Sekunden).
+ * Die Klasse Lieferant simuliert die Anlieferung von Rohstoffen.
+ * Er arbeitet als eigener Thread (asynchron) und nutzt eine Warteschlange,
+ * damit Bestellungen auch während einer Auslieferung sicher angenommen werden.
  *
- * @author GBI Gruppe 17 (bearbeitet für Aufgabe 3)
- * @version 21.12.2025
+ * Zeit-Skalierung: 1 Stunde = 1 Sekunde.
+ * Lieferzeit: 2 Tage = 48 Stunden = 48 Sekunden (48.000 ms).
+ *
+ * @author GBI Gruppe 17
+ * @version 16.12.2025
  */
 public class Lieferant extends Thread {
 
-    // Referenz auf das Lager, damit der Lieferant die Ware dort abliefern kann
     private Lager lager;
+    private boolean laeuft;
+    
+    // Thread-Safe Queue: Speichert Aufträge sicher, bis der Lieferant Zeit hat.
+    private final BlockingQueue<BestellAuftrag> auftragsQueue;
 
-    // Variablen zum Speichern der aktuell laufenden Bestellung
-    private int holzEinheiten;
-    private int schrauben;
-    private int farbEinheiten;
-    private int kartonEinheiten;
-    private int glasEinheiten;
-
-    // Status, ob der Lieferant gerade eine Bestellung bearbeitet
-    private boolean istBeschaeftigt;
-
-    // Konstante für die Lieferzeit: 2 Tage = 48 Stunden. 1 Stunde = 1 Sekunde.
-    // 48 Sekunden * 1000 = 48000 Millisekunden.
-    private static final int LIEFERZEIT = 48000; 
+    // Standard-Lieferzeit: 48.000 ms (48 Sekunden)
+    // Kann für Tests angepasst werden.
+    private int lieferZeitMs = 48000;
 
     /**
-     * Konstruktor der Klasse Lieferant.
-     * * @param lager Das Lager, an das die Waren geliefert werden sollen.
+     * Interne Hilfsklasse (Immutable Record) für einen Auftrag.
      */
-    public Lieferant(Lager lager) {
-        this.lager = lager;
-        this.istBeschaeftigt = false;
-        // Initialisierung der Bestellmengen auf 0
-        this.holzEinheiten = 0;
-        this.schrauben = 0;
-        this.farbEinheiten = 0;
-        this.kartonEinheiten = 0;
-        this.glasEinheiten = 0;
+    private static class BestellAuftrag {
+        final int holz, schrauben, farbe, karton, glas;
+
+        BestellAuftrag(int h, int s, int f, int k, int g) {
+            this.holz = h; this.schrauben = s; this.farbe = f; 
+            this.karton = k; this.glas = g;
+        }
     }
 
     /**
-     * Die Run-Methode des Threads. 
-     * Sie prüft in einer Endlosschleife, ob eine Bestellung vorliegt.
-     * Wenn ja, wird gewartet (simulierte Lieferzeit) und dann geliefert.
+     * Konstruktor der Klasse Lieferant.
+     * @param lager Das Lager, an das die Waren geliefert werden.
      */
+    public Lieferant(Lager lager) {
+        this.lager = lager;
+        this.laeuft = true;
+        // LinkedBlockingQueue hat theoretisch unbegrenzte Kapazität -> Blockiert den Aufrufer nie
+        this.auftragsQueue = new LinkedBlockingQueue<>();
+    }
+
+    /**
+     * Die Thread-Logik: Wartet auf Aufträge und arbeitet sie nacheinander ab.
+     */
+    @Override
     public void run() {
-        while (true) {
-            // Wir prüfen, ob eine Bestellung bearbeitet werden muss
-            if (istBeschaeftigt) {
-                try {
-                    // Ausgabe zur Information im Terminal
-                    System.out.println("Lieferant: Bestellung erhalten. Lieferung in 48 Stunden (48 Sek)...");
-                    
-                    // Der Thread schläft für die definierte Lieferzeit
-                    Thread.sleep(LIEFERZEIT);
-                    
-                    // Nach dem Aufwachen: Ware an das Lager übergeben
-                    // Hinweis: Die Methode 'wareLiefern' muss in der Klasse Lager existieren
-                    // und die Bestände dort erhöhen.
-                    lager.wareLiefern(holzEinheiten, schrauben, farbEinheiten, kartonEinheiten, glasEinheiten);
-                    
-                    System.out.println("Lieferant: Ware wurde im Lager abgeliefert.");
+        System.out.println("[Lieferant] Thread gestartet. Warte auf Aufträge...");
+        while (laeuft) {
+            try {
+                // take() blockiert ressourcenschonend, bis ein Auftrag in der Queue liegt.
+                BestellAuftrag auftrag = auftragsQueue.take();
 
-                    // Bestellung ist abgeschlossen, Lieferant ist wieder frei
-                    istBeschaeftigt = false;
-                    resetBestellung();
-
-                } catch (InterruptedException e) {
-                    // Falls der Thread während des Schlafens unterbrochen wird
-                    System.out.println("Lieferant: Lieferung wurde unterbrochen!");
-                    e.printStackTrace();
-                }
-            } else {
-                // Wenn nichts zu tun ist, kurz warten, um CPU-Last zu sparen
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                System.out.println("[Lieferant] Auftrag entnommen. Fahre los (Dauer: " + lieferZeitMs + "ms)...");
+                
+                // Simulation der Lieferzeit (Schlafen)
+                Thread.sleep(lieferZeitMs);
+                
+                // Nach dem Aufwachen: Ware im Lager abliefern
+                lager.wareLiefern(auftrag.holz, auftrag.schrauben, auftrag.farbe, 
+                                  auftrag.karton, auftrag.glas);
+                                      
+            } catch (InterruptedException e) {
+                System.out.println("[Lieferant] Unterbrochen. Beende Schicht.");
+                laeuft = false;
+                Thread.currentThread().interrupt();
             }
         }
     }
 
     /**
-     * Mit dieser Methode wird eine Bestellung beim Lieferanten aufgegeben.
-     * Die Werte werden gespeichert und der Status auf 'beschäftigt' gesetzt,
-     * damit die run()-Methode die Bearbeitung startet.
-     * * @param holzEinheiten   Anzahl bestellter Holzeinheiten
-     * @param schrauben       Anzahl bestellter Schrauben
-     * @param farbEinheiten   Anzahl bestellter Farbeinheiten
-     * @param kartonEinheiten Anzahl bestellter Kartoneinheiten
-     * @param glasEinheiten   Anzahl bestellter Glaseinheiten
-     * @return true, wenn die Bestellung angenommen wurde, false wenn der Lieferant noch beschäftigt ist.
+     * Nimmt eine Bestellung entgegen und reiht sie in die Warteschlange ein.
+     * Diese Methode ist thread-safe und kehrt sofort zurück (non-blocking).
+     *
+     * @return true (Bestellung immer angenommen)
      */
-    public synchronized boolean wareBestellen(int holzEinheiten, int schrauben, int farbEinheiten, 
-                                              int kartonEinheiten, int glasEinheiten) {
-        
-        // Prüfen, ob der Lieferant gerade schon eine Lieferung ausfährt
-        if (istBeschaeftigt) {
-            System.out.println("Lieferant: Ich bearbeite bereits eine Bestellung. Bitte warten.");
-            return false; 
-        }
-
-        // Übernahme der Bestellmengen in die Instanzvariablen
-        this.holzEinheiten = holzEinheiten;
-        this.schrauben = schrauben;
-        this.farbEinheiten = farbEinheiten;
-        this.kartonEinheiten = kartonEinheiten;
-        this.glasEinheiten = glasEinheiten;
-
-        // Signalisiert der run()-Methode, dass Arbeit da ist
-        this.istBeschaeftigt = true;
-        
+    public boolean wareBestellen(int holz, int schrauben, int farbe, int karton, int glas) {
+        auftragsQueue.offer(new BestellAuftrag(holz, schrauben, farbe, karton, glas));
+        System.out.println("[Lieferant] Bestellung in Warteschlange eingereiht.");
         return true; 
     }
-
+    
     /**
-     * Hilfsmethode, um die internen Bestellvariablen zurückzusetzen.
+     * Ermöglicht das Anpassen der Lieferzeit (z.B. für Unit-Tests).
+     * @param ms Zeit in Millisekunden
      */
-    private void resetBestellung() {
-        this.holzEinheiten = 0;
-        this.schrauben = 0;
-        this.farbEinheiten = 0;
-        this.kartonEinheiten = 0;
-        this.glasEinheiten = 0;
+    public void setzeLieferzeitFuerTests(int ms) {
+        this.lieferZeitMs = ms;
+    }
+    
+    /**
+     * Stoppt den Thread sauber.
+     */
+    public void stoppen() {
+        laeuft = false;
+        this.interrupt();
     }
 }

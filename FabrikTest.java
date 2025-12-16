@@ -5,11 +5,11 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 
 /**
- * Umfangreiche Integrationstests für die Fabrik.
- * Testet diverse Szenarien des kompletten Ablaufs (Strikt nach Aufgabe 3 mit nur Holzroboter).
+ * Erweiterte Integrationstests für die Fabrik.
+ * Prüft den Produktionsablauf, asynchrone Lieferzeiten und das Verhalten bei leerem Lager.
  *
  * @author GBI Gruppe 17
- * @version 21.12.2025
+ * @version 16.12.2025
  */
 public class FabrikTest {
     
@@ -20,90 +20,90 @@ public class FabrikTest {
 
     @BeforeEach
     public void setUp() {
-        System.out.println("### INTEGRATIONSTEST START ###");
+        System.out.println("### TEST START ###");
         fabrik = new Fabrik();
+        
+        // WICHTIG: Wir setzen die Lieferzeit für Tests auf 2 Sekunden (2000ms),
+        // damit wir das Zeitverhalten prüfen können, ohne 48 Sekunden zu warten.
+        if (fabrik.gibLieferant() != null) {
+            fabrik.gibLieferant().setzeLieferzeitFuerTests(2000);
+        }
     }
 
     @AfterEach
     public void tearDown() {
+        // Threads sauber beenden
+        if (fabrik.gibLieferant() != null) {
+            fabrik.gibLieferant().stoppen();
+        }
         fabrik = null; 
-        System.out.println("### INTEGRATIONSTEST ENDE ###\n");
+        System.out.println("### TEST ENDE ###\n");
+    }
+
+    @Test
+    public void testStandardProduktionsDurchlauf() {
+        System.out.println("Szenario: Normale Bestellung (Lager gefüllt)");
+        
+        fabrik.bestellungAufgeben(0, 1); // 1 Standardtür
+        
+        // Wir warten 2.5 Sekunden (ausreichend für Produktion, da Lager voll ist)
+        pause(2500);
+        
+        ArrayList<Bestellung> liste = fabrik.gibBestellungen();
+        assertEquals(1, liste.size());
+        assertTrue(liste.get(0).istAbgeschlossen(), "Bestellung sollte fertig sein.");
     }
 
     /**
-     * Vereinfachter Test: Prüft nur, ob eine Bestellung angelegt wird.
-     * Vermeidet Fehler bei der genauen Anzahl-Prüfung.
+     * Dieser Test prüft den kritischen Edge Case:
+     * 1. Lager wird komplett geleert.
+     * 2. Neue Bestellung kommt rein.
+     * 3. Manager muss warten (Produktion stoppt).
+     * 4. Lieferung kommt an.
+     * 5. Produktion läuft weiter.
      */
     @Test
-    public void testBestellungAufgeben() {
-        System.out.println("Szenario: Einfache Prüfung der Bestellannahme");
-        fabrik.bestellungAufgeben(1, 1); 
+    public void testWartezeitBeiLeeremLager() {
+        System.out.println("Szenario: Lager leer -> Warten auf Lieferant -> Weiterproduzieren");
         
-        ArrayList<Bestellung> liste = fabrik.gibBestellungen();
+        // 1. Lager leeren
+        // Wir bestellen 250 Premiumtüren. Jede braucht 4 Holz. 250 * 4 = 1000 (Max Kapazität).
+        System.out.println("-> Entleere Lager...");
+        fabrik.bestellungAufgeben(250, 0);
         
-        // Hauptsache, die Bestellung ist in der Liste
-        assertEquals(1, liste.size(), "Es sollte genau eine Bestellung vorhanden sein.");
-        assertNotNull(liste.get(0), "Das Bestellungsobjekt darf nicht null sein.");
-    }
-
-    @Test
-    public void testProduktionEineTuerDurchlauf() {
-        System.out.println("Szenario: Vollständiger Durchlauf 1 Standardtür");
-        
-        fabrik.bestellungAufgeben(0, 1);
-        
-        // Sicherheitscheck, ob Liste nicht leer ist
-        if(fabrik.gibBestellungen().isEmpty()) return;
-
-        Bestellung b = fabrik.gibBestellungen().get(0);
-        
-        // Zeitbedarf: ~166ms (Holz) + Overhead. 
-        // 2000ms ist mehr als genug Puffer.
+        // Kurz warten, damit der Manager das Lager leer räumen kann
         pause(2000);
         
-        assertTrue(b.istAbgeschlossen(), "Bestellung sollte nach 2s fertig sein.");
-    }
-
-    @Test
-    public void testProduktionGemischt() {
-        System.out.println("Szenario: Gemischte Bestellung (1 Std, 1 Prem)");
-        // 1 Premium = 500ms Holz
-        // 1 Standard = 166ms Holz
-        // Gesamtzeit < 1 Sekunde.
+        // 2. Neue Bestellung aufgeben, die blockieren muss (da 0 Holz da ist)
+        System.out.println("-> Gebe blockierende Bestellung auf...");
+        fabrik.bestellungAufgeben(0, 1); // Braucht 2 Holz
         
-        fabrik.bestellungAufgeben(1, 1);
-        
-        if(fabrik.gibBestellungen().isEmpty()) return;
-        Bestellung b = fabrik.gibBestellungen().get(0);
-        
-        pause(3000); 
-        
-        assertTrue(b.istAbgeschlossen(), "Gemischte Bestellung nicht fertig geworden.");
-    }
-    
-    @Test
-    public void testMehrereBestellungen() {
-        System.out.println("Szenario: Mehrere Bestellungen hintereinander");
-        
-        fabrik.bestellungAufgeben(0, 1); // Best 1
-        fabrik.bestellungAufgeben(0, 1); // Best 2
+        // 3. Prüfung der Blockade
+        // Die Lieferzeit ist auf 2000ms eingestellt.
+        // Wir prüfen nach 1000ms: Die Bestellung darf noch NICHT fertig sein.
+        pause(1000);
         
         ArrayList<Bestellung> liste = fabrik.gibBestellungen();
-        assertEquals(2, liste.size());
+        Bestellung letzteBestellung = liste.get(liste.size() - 1);
         
-        pause(4000); 
+        assertFalse(letzteBestellung.istAbgeschlossen(), 
+            "FEHLER: Bestellung ist zu früh fertig! Manager hat nicht auf Lieferung gewartet.");
+            
+        // 4. Prüfung nach Lieferung
+        // Wir warten den Rest der Zeit ab (insgesamt > 2000ms)
+        pause(2500); 
         
-        assertTrue(liste.get(0).istAbgeschlossen(), "Bestellung 1 nicht fertig.");
-        assertTrue(liste.get(1).istAbgeschlossen(), "Bestellung 2 nicht fertig.");
+        assertTrue(letzteBestellung.istAbgeschlossen(), 
+            "FEHLER: Bestellung wurde nach Lieferung nicht fertiggestellt (Deadlock?).");
+            
+        System.out.println("-> Erfolg: System hat korrekt gewartet und fortgesetzt.");
     }
-    
+
     /**
      * Hilfsmethode zum Warten.
-     * Heißt "pause", um Konflikte mit Object.wait() zu vermeiden.
      */
     private void pause(int ms) {
         try {
-            System.out.println("... warte " + ms + "ms ...");
             Thread.sleep(ms);
         } catch (InterruptedException e) {
             e.printStackTrace();
