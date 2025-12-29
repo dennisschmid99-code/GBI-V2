@@ -1,99 +1,89 @@
 import java.util.LinkedList;
 
 /**
- * Die abstrakte Basisklasse Roboter verwaltet eine Warteschlange von Produkten
- * und arbeitet diese in einem eigenen Thread ab.
- * * Sie dient als Vorlage für spezifische Roboter (z.B. Holzbearbeitungs_Roboter).
+ * Die abstrakte Basisklasse Roboter.
+ * UPDATE: Implementiert "Backpressure" (Gegendruck). 
+ * Die Warteschlange hat nun eine maximale Kapazität. Wenn das Band voll ist,
+ * muss der Anlieferer (Manager) warten. Das synchronisiert den Lagerabbau mit dem Produktionstempo.
  *
  * @author GBI Gruppe 17
- * @version 21.12.2025
+ * @version 29.12.2025
  */
 public abstract class Roboter extends Thread {
 
-    //Die Warteschlange der Produkte, die dieser Roboter bearbeiten muss
     private LinkedList<Produkt> warteschlange;
-    
-    // Name des Roboters (z.B. "Holzbearbeitungsroboter")
     private String name;
-    
-    // Produktionszeit kann hier gespeichert oder im konkreten Roboter verwaltet werden
     protected int produktionsZeit;
+    
+    // NEU: Maximale Kapazität des Fließbands (Puffer). Wert auf 1 gesetzt damit man die logik im GUI besser sieht. logisch wären 5 oder so da kein Fliessband nur etwas aufs mal produziert. 
+    private static final int BAND_KAPAZITAET = 1;
 
-    /**
-     * Konstruktor für Objekte der Klasse Roboter
-     * @param name Der Name des Roboters
-     */
     public Roboter(String name) {
         this.name = name;
-        // Initialisierung der Warteschlange als LinkedList
         this.warteschlange = new LinkedList<Produkt>();
     }
 
-    /**
-     * Die Run-Methode des Threads.
-     * Enthält eine Endlosschleife, die prüft, ob Produkte in der Warteschlange sind.
-     */
     public void run() {
         while (true) {
             Produkt aktuellesProdukt = null;
 
-            // Zugriff auf die Warteschlange synchronisieren, um Thread-Probleme zu vermeiden
             synchronized (warteschlange) {
-                // Solange die Schlange leer ist, wartet der Roboter
+                // 1. Warten, bis Arbeit da ist (Consumer)
                 while (warteschlange.isEmpty()) {
                     try {
-                        warteschlange.wait(); // Thread legt sich schlafen und wartet auf Benachrichtigung
+                        warteschlange.wait(); 
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
-                // Wenn wir hier sind, ist mindestens ein Produkt da.
-                // Wir holen das erste Produkt aus der Schlange (FIFO).
+                
+                // 2. Produkt vom Band nehmen
                 aktuellesProdukt = warteschlange.removeFirst();
+                
+                // WICHTIG: Wir haben Platz gemacht! Den Manager aufwecken, falls er wartet.
+                warteschlange.notifyAll(); 
             }
 
-            // Die Produktion findet außerhalb des synchronized-Blocks statt,
-            // damit neue Produkte hinzugefügt werden können, während der Roboter arbeitet.
+            // 3. Arbeiten (außerhalb des Locks, damit währenddessen das Band aufgefüllt werden kann)
             if (aktuellesProdukt != null) {
-                // Diese Methode wird von der konkreten Unterklasse implementiert
                 produziereProdukt(aktuellesProdukt);
             }
         }
     }
 
     /**
-     * Fügt ein Produkt zur Warteschlange des Roboters hinzu.
-     * Wird vom Produktions_Manager aufgerufen.
-     * * @param produkt Das zu bearbeitende Produkt
+     * Fügt ein Produkt zur Warteschlange hinzu.
+     * BLOCKIERT nun, wenn das Band voll ist (Flow Control).
      */
     public void fuegeProduktHinzu(Produkt produkt) {
         synchronized (warteschlange) {
+            // Backpressure-Logik: Warten, solange Band voll ist
+            while (warteschlange.size() >= BAND_KAPAZITAET) {
+                try {
+                    // Optional: Log, damit man sieht, dass das System bremst
+                    // System.out.println(this.name + ": Band voll! Produktion wird gedrosselt...");
+                    warteschlange.wait();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+            
             warteschlange.add(produkt);
-            // Benachrichtigt den wartenden run()-Thread, dass Arbeit da ist
+            
+            // Den Worker-Thread aufwecken (Arbeit ist da)
             warteschlange.notifyAll();
-            System.out.println(this.name + ": Produkt in Warteschlange aufgenommen.");
+            
+            System.out.println(this.name + ": Produkt aufgenommen. Puffer: " + warteschlange.size() + "/" + BAND_KAPAZITAET);
         }
     }
 
-    /**
-     * Abstrakte Methode, die die spezifische Produktion simuliert.
-     * Muss von den Unterklassen (z.B. Holzbearbeitungs_Roboter) implementiert werden.
-     * * @param produkt Das zu produzierende Produkt
-     */
     public abstract void produziereProdukt(Produkt produkt);
 
-    /**
-     * Gibt den Namen des Roboters zurück.
-     * @return Der Name als String
-     */
     public String gibNamen() {
         return name;
     }
 
-    /**
-     * Setzt die generelle Produktionszeit (falls benötigt).
-     * @param zeit Zeit in Millisekunden
-     */
     public void setzeProduktionsZeit(int zeit) {
         this.produktionsZeit = zeit;
     }

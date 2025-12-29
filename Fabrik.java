@@ -1,12 +1,5 @@
 import java.util.ArrayList;
 
-/**
- * Die Klasse Fabrik ist der Haupt-Einstiegspunkt. Sie initialisiert die Infrastruktur
- * (Lager, Lieferant, Manager) und ermöglicht die Eingabe von Bestellungen.
- *
- * @author GBI Gruppe 17
- * @version 29.12.2025
- */
 public class Fabrik {
 
     private Lager lager;
@@ -15,10 +8,6 @@ public class Fabrik {
     private ArrayList<Bestellung> alleBestellungen;
     private int bestellungsNrCounter;
 
-    /**
-     * Konstruktor der Fabrik.
-     * Erstellt die Komponenten, verknüpft sie und startet die Threads.
-     */
     public Fabrik() {
         this.alleBestellungen = new ArrayList<Bestellung>();
         this.bestellungsNrCounter = 1;
@@ -26,51 +15,57 @@ public class Fabrik {
         this.lager = new Lager();
         this.lieferant = new Lieferant(lager);
         this.lager.setzeLieferant(lieferant);
-        
-        // Threads starten
         this.lieferant.start(); 
 
         this.produktionsManager = new Produktions_Manager(lager);
         this.produktionsManager.start();
 
-        System.out.println("Fabrik: System hochgefahren. Threads gestartet.");
+        System.out.println("Fabrik: System hochgefahren.");
     }
 
     public void bestellungAufgeben(int anzahlPremium, int anzahlStandard) {
         Bestellung neueBestellung = new Bestellung(bestellungsNrCounter++);
         
-        for (int i = 0; i < anzahlStandard; i++) {
-            neueBestellung.fuegeProduktHinzu(new Standardtuer());
-        }
-        for (int i = 0; i < anzahlPremium; i++) {
-            neueBestellung.fuegeProduktHinzu(new Premiumtuer());
-        }
+        for (int i = 0; i < anzahlStandard; i++) neueBestellung.fuegeProduktHinzu(new Standardtuer());
+        for (int i = 0; i < anzahlPremium; i++) neueBestellung.fuegeProduktHinzu(new Premiumtuer());
 
         alleBestellungen.add(neueBestellung);
-        System.out.println("Fabrik: Bestellung " + neueBestellung.gibBestellungsNr() + " aufgegeben.");
+        
+        // Smart Logistics Trigger
+        lager.meldeBedarf(neueBestellung);
 
         produktionsManager.fuegeZuVerarbeitendeBestellungenHinzu(neueBestellung);
     }
-
-    public ArrayList<Bestellung> gibBestellungen() {
-        return alleBestellungen;
+    
+    // --- Neue Steuerungs-Methoden ---
+    
+    public void setzeProduktionPausiert(boolean pausiert) {
+        if(produktionsManager != null) {
+            produktionsManager.setzePausiert(pausiert);
+        }
+    }
+    
+    public void stornierePendenteBestellungen() {
+        // 1. Die Warteschlange im Manager leeren
+        if(produktionsManager != null) {
+            produktionsManager.storniereWartendeBestellungen();
+        }
+        
+        // 2. Die laufende Bestellung abbrechen
+        // Das geschieht implizit, indem wir das Flag der aktuellen Bestellung setzen.
+        // Dafür müssten wir wissen, welche gerade läuft.
+        // ABER: In unserer Logik haben wir Zugriff auf "alleBestellungen".
+        // Wir können einfach ALLE Bestellungen, die noch nicht fertig sind, stornieren.
+        // Der Manager wird dann im Loop merken "Oh, storniert -> Stop".
+        
+        for(Bestellung b : alleBestellungen) {
+            if(!b.istAbgeschlossen()) {
+                b.stornieren();
+            }
+        }
     }
 
-    /**
-     * Getter für den Lieferanten.
-     * Ermöglicht Zugriff für Tests (z.B. um Lieferzeit anzupassen).
-     * @return Das Lieferanten-Objekt
-     */
-    public Lieferant gibLieferant() {
-        return lieferant;
-    }
-
-    /**
-     * Getter für das Lager.
-     * Ermöglicht der GUI den Zugriff auf Lagerbestände.
-     * @return Das Lager-Objekt
-     */
-    public Lager gibLager() {
-        return this.lager;
-    }
+    public ArrayList<Bestellung> gibBestellungen() { return alleBestellungen; }
+    public Lieferant gibLieferant() { return lieferant; }
+    public Lager gibLager() { return this.lager; }
 }
