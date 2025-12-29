@@ -2,11 +2,10 @@ import java.util.ArrayList;
 
 /**
  * Die Klasse Lager verwaltet die Rohstoffe für die Produktion.
- * Sie nutzt ein Monitor-Pattern (wait/notify), um die Produktion bei 
- * Materialmangel zu pausieren, statt negative Bestände zu erzeugen.
+ * UPDATE: Unterstützt nun atomare Materialentnahme pro Produkt (Just-in-Time).
  *
  * @author GBI Gruppe 17
- * @version 16.12.2025
+ * @version 29.12.25
  */
 public class Lager {
 
@@ -30,7 +29,6 @@ public class Lager {
     private Lieferant lieferant;
 
     public Lager() {
-        // Initialisierung mit vollem Lager
         this.vorhandeneHolzeinheiten = MAX_HOLZEINHEITEN;
         this.vorhandeneSchrauben = MAX_SCHRAUBEN;
         this.vorhandeneFarbeinheiten = MAX_FARBEINHEITEN;
@@ -43,105 +41,89 @@ public class Lager {
     }
 
     /**
-     * Entnimmt die notwendigen Materialien für eine Bestellung.
-     * WICHTIG: Blockiert den Thread, falls nicht genug Material da ist.
-     *
-     * @param bestellung Die Bestellung, für die Material benötigt wird.
+     * VERALTET (Legacy): Entnimmt Material für ganze Bestellung. 
+     * Wird beibehalten für Kompatibilität, aber intern nutzen wir nun die feinere Methode.
      */
     public synchronized void materialEntnehmen(Bestellung bestellung) {
-        ArrayList<Produkt> produkte = bestellung.liefereBestellteProdukte();
+        for (Produkt p : bestellung.liefereBestellteProdukte()) {
+            materialEntnehmen(p);
+        }
+    }
 
-        // 1. Gesamtbedarf berechnen
+    /**
+     * NEU & ELEGANT: Entnimmt Material für genau EIN Produkt.
+     * Blockiert, wenn für dieses eine Produkt nicht genug da ist.
+     */
+    public synchronized void materialEntnehmen(Produkt produkt) {
         int bedarfHolz = 0;
         int bedarfSchrauben = 0;
         int bedarfFarbe = 0;
         int bedarfKarton = 0;
         int bedarfGlas = 0;
 
-        for (Produkt produkt : produkte) {
-            if (produkt instanceof Standardtuer) {
-                bedarfHolz += Standardtuer.gibHolzeinheiten();
-                bedarfSchrauben += Standardtuer.gibSchrauben();
-                bedarfFarbe += Standardtuer.gibFarbeinheiten();
-                bedarfKarton += Standardtuer.gibKartoneinheiten();
-            } else if (produkt instanceof Premiumtuer) {
-                bedarfHolz += Premiumtuer.gibHolzeinheiten();
-                bedarfSchrauben += Premiumtuer.gibSchrauben();
-                bedarfFarbe += Premiumtuer.gibFarbeinheiten();
-                bedarfKarton += Premiumtuer.gibKartoneinheiten();
-                bedarfGlas += Premiumtuer.gibGlaseinheiten();
-            }
+        // Bedarfsermittlung
+        if (produkt instanceof Standardtuer) {
+            bedarfHolz = Standardtuer.gibHolzeinheiten();
+            bedarfSchrauben = Standardtuer.gibSchrauben();
+            bedarfFarbe = Standardtuer.gibFarbeinheiten();
+            bedarfKarton = Standardtuer.gibKartoneinheiten();
+        } else if (produkt instanceof Premiumtuer) {
+            bedarfHolz = Premiumtuer.gibHolzeinheiten();
+            bedarfSchrauben = Premiumtuer.gibSchrauben();
+            bedarfFarbe = Premiumtuer.gibFarbeinheiten();
+            bedarfKarton = Premiumtuer.gibKartoneinheiten();
+            bedarfGlas = Premiumtuer.gibGlaseinheiten();
         }
 
-        // 2. Prüfen ob genug da ist (Guarded Block)
+        // Guarded Block: Warten bis genug Material für DIESES EINE Produkt da ist
         while (!istGenugMaterialDa(bedarfHolz, bedarfSchrauben, bedarfFarbe, bedarfKarton, bedarfGlas)) {
-            System.out.println("[Lager] WARNUNG: Zu wenig Material für Best. " + bestellung.gibBestellungsNr() + 
-                               ". Warte auf Lieferung...");
-            
-            // Bevor wir warten, müssen wir sicherstellen, dass Ware bestellt ist!
-            // 'true' erzwingt die Bestellung, auch wenn wir knapp über der 20% Schwelle wären aber für DIESE Bestellung zu wenig haben.
-            pruefeBestandUndBestelle(true); 
-            
+            System.out.println("[Lager] Engpass bei Produkt! Warte auf Lieferung...");
+            pruefeBestandUndBestelle(true); // Bestellung erzwingen
             try {
-                wait(); // Thread legt sich schlafen und gibt Lock frei
+                wait(); 
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
-                System.err.println("[Lager] Warten unterbrochen.");
                 return;
             }
         }
 
-        // 3. Entnahme (Sicher möglich, da Bedingung erfüllt)
+        // Entnahme
         vorhandeneHolzeinheiten -= bedarfHolz;
         vorhandeneSchrauben -= bedarfSchrauben;
         vorhandeneFarbeinheiten -= bedarfFarbe;
         vorhandeneKartoneinheiten -= bedarfKarton;
         vorhandeneGlaseinheiten -= bedarfGlas;
 
-        System.out.println("[Lager] Material für Best. " + bestellung.gibBestellungsNr() + " entnommen. Rest Holz: " + vorhandeneHolzeinheiten);
-        
-        // 4. Prüfen ob wir durch die Entnahme unter die Schwelle gefallen sind
+        // Checken, ob wir DURCH diese Entnahme unter die Schwelle gefallen sind -> Nachbestellen
         pruefeBestandUndBestelle(false);
     }
 
-    /**
-     * Prüft, ob für den aktuellen Bedarf genug Rohstoffe da sind.
-     */
     private boolean istGenugMaterialDa(int h, int s, int f, int k, int g) {
         return vorhandeneHolzeinheiten >= h && vorhandeneSchrauben >= s &&
                vorhandeneFarbeinheiten >= f && vorhandeneKartoneinheiten >= k &&
                vorhandeneGlaseinheiten >= g;
     }
 
-    /**
-     * Prüft Bestände und löst Bestellung beim Lieferanten aus.
-     * @param erzwingen Wenn true, wird bestellt auch wenn Schwelle nicht unterschritten (z.B. bei Leerstand).
-     */
     private void pruefeBestandUndBestelle(boolean erzwingen) {
         if (lieferant == null) return;
 
-        boolean holzKnapp = vorhandeneHolzeinheiten < MAX_HOLZEINHEITEN * BESTELLSCHWELLE;
-        // (Zur Vereinfachung prüfen wir hier primär auf Holz, im echten Leben auf alle)
+        // Wir prüfen exemplarisch Holz und Schrauben für die Nachbestell-Logik
+        boolean knapp = vorhandeneHolzeinheiten < MAX_HOLZEINHEITEN * BESTELLSCHWELLE ||
+                        vorhandeneSchrauben < MAX_SCHRAUBEN * BESTELLSCHWELLE;
 
-        if (erzwingen || holzKnapp) {
-             // Strategie: Lager komplett auffüllen
+        if (erzwingen || knapp) {
              int h = Math.max(0, MAX_HOLZEINHEITEN - vorhandeneHolzeinheiten);
              int s = Math.max(0, MAX_SCHRAUBEN - vorhandeneSchrauben);
              int f = Math.max(0, MAX_FARBEINHEITEN - vorhandeneFarbeinheiten);
              int k = Math.max(0, MAX_KARTONEINHEITEN - vorhandeneKartoneinheiten);
              int g = Math.max(0, MAX_GLASEINHEITEN - vorhandeneGlaseinheiten);
 
-             // Nur bestellen, wenn > 0
-             if (h > 0 || s > 0) {
+             if (h > 0 || s > 0 || f > 0 || k > 0 || g > 0) {
                  lieferant.wareBestellen(h, s, f, k, g);
              }
         }
     }
 
-    /**
-     * Nimmt Ware entgegen. Wird vom Lieferanten aufgerufen.
-     * Weckt wartende Threads auf.
-     */
     public synchronized void wareLiefern(int h, int s, int f, int k, int g) {
         vorhandeneHolzeinheiten = Math.min(MAX_HOLZEINHEITEN, vorhandeneHolzeinheiten + h);
         vorhandeneSchrauben = Math.min(MAX_SCHRAUBEN, vorhandeneSchrauben + s);
@@ -149,9 +131,20 @@ public class Lager {
         vorhandeneKartoneinheiten = Math.min(MAX_KARTONEINHEITEN, vorhandeneKartoneinheiten + k);
         vorhandeneGlaseinheiten = Math.min(MAX_GLASEINHEITEN, vorhandeneGlaseinheiten + g);
         
-        System.out.println("[Lager] Wareneingang! Neuer Holzbestand: " + vorhandeneHolzeinheiten);
-        
-        // WICHTIG: Weckt den Manager auf, falls er im materialEntnehmen() wartet.
+        System.out.println("[Lager] Wareneingang! Bestände aufgefüllt.");
         notifyAll(); 
     }
+
+    // Getter für GUI
+    public int gibAnzahlHolz() { return vorhandeneHolzeinheiten; }
+    public int gibAnzahlSchrauben() { return vorhandeneSchrauben; }
+    public int gibAnzahlFarbe() { return vorhandeneFarbeinheiten; }
+    public int gibAnzahlKarton() { return vorhandeneKartoneinheiten; }
+    public int gibAnzahlGlas() { return vorhandeneGlaseinheiten; }
+
+    public int gibMaxHolz() { return MAX_HOLZEINHEITEN; }
+    public int gibMaxSchrauben() { return MAX_SCHRAUBEN; }
+    public int gibMaxFarbe() { return MAX_FARBEINHEITEN; }
+    public int gibMaxKarton() { return MAX_KARTONEINHEITEN; }
+    public int gibMaxGlas() { return MAX_GLASEINHEITEN; }
 }

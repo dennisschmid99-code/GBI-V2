@@ -1,49 +1,27 @@
+import javax.swing.SwingUtilities;
+
 /**
- * Die Klasse Main ist die Hauptklasse des Programms.
- * Sie demonstriert den Produktionsablauf über die Zeit hinweg.
+ * Entry Point für die Smart Manufacturing Applikation.
+ * Startet das Dashboard und initialisiert das Backend.
  *
  * @author GBI Gruppe 17
- * @version 21.12.2025
+ * @version 29.12.2025
  */
 public class Main {
 
     public static void main(String[] args) {
+        System.out.println(">>> Start Smart Manufacturing Fabrik v4.0 <<<");
+        
+        // 1. Backend initialisieren
+        Fabrik fabrik = new Fabrik();
 
-        System.out.println(">>> Start Smart Manufacturing Fabrik <<<");
-        System.out.println("----------------------------------------");
-
-        // 1. Fabrik initialisieren (startet Manager & Roboter Threads)
-        Fabrik testFabrik = new Fabrik();
-
-        try {
-            // Szenario 1: Eine kleine Bestellung zum Aufwärmen
-            System.out.println("\n[Main]: Gebe Bestellung 1 auf (2 Standard, 2 Premium)...");
-            testFabrik.bestellungAufgeben(2, 2);
+        // 2. GUI im Event-Dispatch-Thread starten (Best Practice für Swing)
+        SwingUtilities.invokeLater(() -> {
+            FabrikGUI gui = new FabrikGUI(fabrik);
+            gui.setVisible(true);
             
-            // Wir warten kurz, damit man sieht, wie der Manager reagiert
-            Thread.sleep(2000); 
-
-            // Szenario 2: Nur Standardtüren (geht schneller)
-            System.out.println("\n[Main]: Gebe Bestellung 2 auf (5 Standard)...");
-            testFabrik.bestellungAufgeben(5, 0);
-
-            // Szenario 3: Nur Premiumtüren (dauert länger)
-            System.out.println("\n[Main]: Gebe Bestellung 3 auf (2 Premium)...");
-            testFabrik.bestellungAufgeben(0, 2);
-
-            // Jetzt geben wir dem System Zeit, alles abzuarbeiten.
-            // Der Roboter und Manager laufen im Hintergrund weiter.
-            System.out.println("\n[Main]: Alle Bestellungen aufgegeben. Beobachte Produktion...");
-            
-            // Optional: Endlosschleife, damit das Programm nicht terminiert, 
-            // während die Threads noch arbeiten (falls es keine Daemon-Threads sind).
-            // Bei BlueJ meist nicht nötig, aber sauberer für Standalone-Apps.
-            while(true) {
-                Thread.sleep(1000);
-            }
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+            // Optional: Konsolen-Hinweis
+            System.out.println("[System]: Dashboard geladen. Nutzen Sie 'Demo Szenario' für Funktionstest.");
+        });
     }
 }

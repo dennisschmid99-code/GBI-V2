@@ -5,7 +5,7 @@ import java.util.ArrayList;
  * (Lager, Lieferant, Manager) und ermöglicht die Eingabe von Bestellungen.
  *
  * @author GBI Gruppe 17
- * @version 16.12.2025
+ * @version 29.12.2025
  */
 public class Fabrik {
 
@@ -63,5 +63,14 @@ public class Fabrik {
      */
     public Lieferant gibLieferant() {
         return lieferant;
+    }
+
+    /**
+     * Getter für das Lager.
+     * Ermöglicht der GUI den Zugriff auf Lagerbestände.
+     * @return Das Lager-Objekt
+     */
+    public Lager gibLager() {
+        return this.lager;
     }
 }
