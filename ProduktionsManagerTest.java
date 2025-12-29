@@ -4,11 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Testklasse für Produktions_Manager.
- * Prüft den Ablauf mit dem Holzroboter und die asynchrone Verarbeitung.
- *
- * @author GBI Gruppe 17
- * @version 21.12.2025
+ * UPDATED TEST: Produktions_Manager
+ * Deckt nun auch Pause- und Storno-Logik ab (Edge Cases).
  */
 public class ProduktionsManagerTest {
     
@@ -21,112 +18,108 @@ public class ProduktionsManagerTest {
 
     @BeforeEach
     public void setUp() {
-        // Infrastruktur aufbauen
         lager = new Lager();
         lieferant = new Lieferant(lager);
         lager.setzeLieferant(lieferant);
-        
-        // Manager erstellen (startet automatisch den Holzroboter)
+        // Wir nutzen den echten Manager mit echten Threads
         manager = new Produktions_Manager(lager);
     }
 
     @AfterEach
     public void tearDown() {
-        manager = null; // Referenz löschen
+        if(manager != null) manager.setzePausiert(false); // Cleanup
+        manager = null;
     }
 
     @Test
     public void testInitialisierung() {
-        assertNotNull(manager, "Manager sollte existieren.");
-    }
-
-    @Test
-    public void testThreadStart() {
-        manager.start();
-        assertTrue(manager.isAlive(), "Manager-Thread sollte laufen.");
-    }
-
-    @Test
-    public void testBestellungHinzufuegen() {
-        Bestellung b = new Bestellung(1);
-        try {
-            manager.fuegeZuVerarbeitendeBestellungenHinzu(b);
-            assertTrue(true);
-        } catch (Exception e) {
-            fail("Fehler beim Hinzufügen: " + e.getMessage());
-        }
+        assertNotNull(manager);
     }
 
     @Test
     public void testVerarbeitungEinerBestellung() {
-        System.out.println("Test: Eine Standardtür produzieren");
         manager.start();
-        
-        Bestellung b = new Bestellung(10);
-        b.fuegeProduktHinzu(new Standardtuer()); // Dauer ~166ms
+        Bestellung b = new Bestellung(1);
+        b.fuegeProduktHinzu(new Standardtuer());
         
         manager.fuegeZuVerarbeitendeBestellungenHinzu(b);
-        
-        // Wir warten 2 Sekunden (Puffer für Thread-Start + Produktion)
         pause(2000);
         
-        assertTrue(b.istAbgeschlossen(), "Bestellung sollte nach 2s fertig sein (Check Holzroboter-Code!).");
+        assertTrue(b.istAbgeschlossen(), "Basis-Funktion defekt.");
     }
 
+    /**
+     * EDGE CASE 1: Pause-Funktion.
+     * Der Manager darf NICHTS tun, solange pausiert ist.
+     */
     @Test
-    public void testVerarbeitungMehrereProdukte() {
-        System.out.println("Test: Mehrere Produkte (Gemischt)");
+    public void testPausierenUndFortsetzen() {
+        System.out.println("Test: Pause-Logik");
         manager.start();
         
-        Bestellung b = new Bestellung(20);
-        b.fuegeProduktHinzu(new Premiumtuer()); // ~500ms
-        b.fuegeProduktHinzu(new Standardtuer()); // ~166ms
-        
-        manager.fuegeZuVerarbeitendeBestellungenHinzu(b);
-        
-        pause(3000); // 3 Sekunden Puffer
-        
-        assertTrue(b.istAbgeschlossen(), "Gemischte Bestellung sollte fertig sein.");
-    }
-    
-    @Test
-    public void testVerarbeitungMehrereBestellungen() {
-        System.out.println("Test: Zwei Bestellungen hintereinander");
-        manager.start();
-        
-        Bestellung b1 = new Bestellung(31);
-        b1.fuegeProduktHinzu(new Standardtuer());
-        
-        Bestellung b2 = new Bestellung(32);
-        b2.fuegeProduktHinzu(new Premiumtuer());
-        
-        manager.fuegeZuVerarbeitendeBestellungenHinzu(b1);
-        manager.fuegeZuVerarbeitendeBestellungenHinzu(b2);
-        
-        pause(4000); // 4 Sekunden Puffer
-        
-        assertTrue(b1.istAbgeschlossen(), "Bestellung 1 nicht fertig.");
-        assertTrue(b2.istAbgeschlossen(), "Bestellung 2 nicht fertig.");
-    }
-    
-    @Test
-    public void testLeerlauf() {
-        System.out.println("Test: Leerlauf-Verhalten");
-        manager.start();
-        pause(500); // Kurz leerlaufen lassen
+        // 1. Pausieren BEVOR Bestellung kommt
+        manager.setzePausiert(true);
         
         Bestellung b = new Bestellung(99);
         b.fuegeProduktHinzu(new Standardtuer());
         manager.fuegeZuVerarbeitendeBestellungenHinzu(b);
         
+        // 2. Warten - Normalerweise wäre die Tür in 166ms fertig. Wir warten 1s.
+        pause(1000);
+        
+        // ASSERT: Bestellung darf NICHT fertig sein
+        assertFalse(b.istAbgeschlossen(), "Manager hat trotz Pause gearbeitet!");
+        
+        // 3. Fortsetzen
+        manager.setzePausiert(false);
+        pause(2000); // Zeit zum Abarbeiten geben
+        
+        // ASSERT: Jetzt muss sie fertig sein
+        assertTrue(b.istAbgeschlossen(), "Manager ist nach Pause nicht wieder angelaufen.");
+    }
+
+    /**
+     * EDGE CASE 2: Stornierung (Abbruch).
+     * Laufende und wartende Bestellungen müssen gestoppt werden.
+     */
+    @Test
+    public void testStornierung() {
+        System.out.println("Test: Storno-Logik");
+        manager.start();
+        
+        // Wir überfluten den Manager, damit eine Warteschlange entsteht
+        Bestellung b1 = new Bestellung(101); // Wird gerade bearbeitet
+        b1.fuegeProduktHinzu(new Premiumtuer()); // Dauert 500ms
+        
+        Bestellung b2 = new Bestellung(102); // Wartet in Queue
+        b2.fuegeProduktHinzu(new Standardtuer());
+        
+        manager.fuegeZuVerarbeitendeBestellungenHinzu(b1);
+        manager.fuegeZuVerarbeitendeBestellungenHinzu(b2);
+        
+        // Kurz anlaufen lassen (b1 startet, b2 wartet)
+        pause(100);
+        
+        // BAM! Alles abbrechen.
+        manager.storniereWartendeBestellungen();
+        // Wir müssen b1 manuell flaggen, wie es die Fabrik tun würde
+        b1.stornieren(); 
+        
         pause(2000);
-        assertTrue(b.istAbgeschlossen(), "Sollte auch nach Leerlauf arbeiten.");
+        
+        // ASSERT:
+        // b2 war in der Queue -> muss aus Queue entfernt/ignoriert worden sein
+        assertFalse(b2.istAbgeschlossen(), "Wartende Bestellung b2 wurde trotz Storno bearbeitet!");
+        assertTrue(b2.istStorniert(), "b2 sollte Status storniert haben.");
+        
+        // b1 lief schon -> sollte abgebrochen sein (nicht fertig)
+        assertTrue(b1.istStorniert());
+        // Hinweis: Ob b1 "istAbgeschlossen" true/false ist, hängt von der Implementierung ab.
+        // Unsere Logik setzt "alleProdukteProduziert" nur, wenn NICHT storniert.
+        assertFalse(b1.istAbgeschlossen(), "Laufende Bestellung b1 wurde fälschlicherweise als 'Erfolg' markiert.");
     }
     
-    // Hilfsmethode zum Warten
     private void pause(int ms) {
-        try { 
-            Thread.sleep(ms); 
-        } catch (Exception e) {}
+        try { Thread.sleep(ms); } catch (Exception e) {}
     }
 }

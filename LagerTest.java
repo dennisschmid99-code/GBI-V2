@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Aktualisierte Testklasse für Lager (Smart Logistics).
- * Testet nun die granulare Materialentnahme pro Produkt.
+ * FIX: Lieferant wird nun zentral gestartet, damit alle Tests (inkl. Konfig-Änderungen) funktionieren.
  *
  * @author GBI Gruppe 17
  * @version 29.12.2025
@@ -24,9 +24,12 @@ public class LagerTest {
         lager = new Lager();
         lieferantDummy = new Lieferant(lager);
         
-        // Schnelle Lieferung für Tests
+        // Schnelle Lieferung für Tests (10ms)
         lieferantDummy.setzeLieferzeitFuerTests(10); 
         lager.setzeLieferant(lieferantDummy);
+        
+        // FIX: Thread hier zentral starten, damit er für ALLE Tests bereit ist
+        lieferantDummy.start();
     }
 
     @AfterEach
@@ -44,14 +47,11 @@ public class LagerTest {
     public void testMaterialEntnahmeStandard() {
         System.out.println("Test: Entnahme Standardtür (einzeln)");
         
-        // 1. Bestellung erstellen
         Bestellung b = new Bestellung(1);
         b.fuegeProduktHinzu(new Standardtuer());
         
-        // 2. Optional: Bedarf melden (Smart Logistics)
         lager.meldeBedarf(b);
         
-        // 3. Simulation der Entnahme (Manager-Verhalten)
         try {
             for (Produkt p : b.liefereBestellteProdukte()) {
                 lager.materialEntnehmen(p);
@@ -84,20 +84,18 @@ public class LagerTest {
     public void testGrosseEntnahmeMitNachbestellung() {
         System.out.println("Test: Große Entnahme (Trigger Smart Logistics)");
         
-        // Wir bestellen mehr, als das Lager hat (z.B. 300 Premiumtüren = 1200 Holz > 1000 Kapazität)
+        // Wir bestellen mehr, als das Lager hat (z.B. 300 Premiumtüren)
         Bestellung b = new Bestellung(3);
         for(int i=0; i<300; i++) {
             b.fuegeProduktHinzu(new Premiumtuer());
         }
         
-        // Startet den Lieferantenthread, damit er auf Nachbestellungen reagieren kann
-        lieferantDummy.start(); 
+        // Hinweis: Lieferant läuft bereits durch setUp()!
         
         // 1. Bedarf anmelden -> Sollte LKW losschicken
         lager.meldeBedarf(b);
         
-        // 2. Entnahme in Loop (dies wird blockieren/warten, bis LKW kommen)
-        // Wir starten das in einem Thread, damit der Test nicht ewig blockiert, falls was schief geht
+        // 2. Entnahme in separatem Thread simulieren (da sie warten muss)
         Thread entnahmeThread = new Thread(() -> {
             for (Produkt p : b.liefereBestellteProdukte()) {
                 lager.materialEntnehmen(p);
@@ -108,11 +106,9 @@ public class LagerTest {
         
         try {
             // Wir geben dem Ganzen etwas Zeit (Lieferzeit ist auf 10ms verkürzt)
-            // Bei 300 Türen und mehreren Lieferungen sollte es in <2 Sek durch sein
             entnahmeThread.join(4000); 
             
             if (entnahmeThread.isAlive()) {
-                // Wenn er noch lebt, hängt er im Deadlock -> Fail
                 entnahmeThread.interrupt();
                 fail("Entnahme hat zu lange gedauert (Deadlock im Lager?).");
             }
@@ -120,7 +116,7 @@ public class LagerTest {
             e.printStackTrace();
         }
         
-        assertTrue(true, "Großbestellung wurde erfolgreich (mit Nachladen) verarbeitet.");
+        assertTrue(true, "Großbestellung wurde erfolgreich verarbeitet.");
     }
 
     @Test
@@ -139,5 +135,36 @@ public class LagerTest {
         for (Produkt p : b2.liefereBestellteProdukte()) lager.materialEntnehmen(p);
         
         assertTrue(true, "Mehrfache Entnahmen sollten problemlos möglich sein.");
+    }
+
+    /**
+     * EDGE CASE: Konfigurierbare Schwellwerte.
+     * Prüft, ob eine Änderung des Min-Bestands sofort eine Bestellung auslöst.
+     */
+    @Test
+    public void testDynamischeSchwellwerte() {
+        System.out.println("Test: Dynamische Grenzwerte (GUI Spinner)");
+        
+        // Setup: Lager ist voll (1000 Holz)
+        // Wir entnehmen etwas, um Platz zu schaffen (Bestand = 998)
+        Bestellung b = new Bestellung(1);
+        b.fuegeProduktHinzu(new Standardtuer()); // Braucht 2 Holz
+        lager.materialEntnehmen(b.liefereBestellteProdukte().get(0));
+        
+        // Check: Bestand sollte gesunken sein
+        assertTrue(lager.gibAnzahlHolz() < 1000, "Bestand hätte sinken müssen.");
+        
+        // JETZT: Wir setzen den Min-Bestand extrem hoch (999)
+        // Da 998 < 999, muss SOFORT nachbestellt werden.
+        lager.setzeMinBestand("Holz", 999);
+        
+        // Da der Lieferant läuft (setUp), sollte er kurz darauf liefern.
+        try { Thread.sleep(200); } catch (Exception e) {}
+        
+        // Wenn nachbestellt wurde, ist das Lager wieder voll.
+        assertTrue(lager.gibAnzahlHolz() > 998, 
+            "Änderung des Min-Bestands hat keine automatische Nachbestellung ausgelöst!");
+            
+        System.out.println("-> Dynamische Schwelle erfolgreich getestet.");
     }
 }

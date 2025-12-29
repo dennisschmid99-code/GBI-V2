@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * Modernes Management-Dashboard für die Aeki Türenfabrik.
- * UPDATE: Integrierte Steuerung der Minimalbestände im Lager-Panel.
+ * FINAL VERSION: UX-Polish und Fehlerbehandlung integriert.
  *
  * @author GBI Gruppe 17
  * @version 29.12.2025
@@ -25,7 +25,7 @@ public class FabrikGUI extends JFrame {
     private DefaultTableModel orderTableModel;
     private JTextArea logArea;
     
-    // Status
+    // Status Components
     private JLabel lblStatusIcon;
     private JLabel lblStatusText;
     private JPanel statusPanel;
@@ -43,7 +43,7 @@ public class FabrikGUI extends JFrame {
 
     private void initUI() {
         setTitle("Aeki Smart Manufacturing | Executive Dashboard");
-        setSize(1250, 900); // Etwas breiter für die Spinner
+        setSize(1250, 900);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
@@ -57,16 +57,16 @@ public class FabrikGUI extends JFrame {
         header.setForeground(Color.WHITE);
         add(header, BorderLayout.NORTH);
 
-        // Control Panel
+        // Control Panel (Links)
         add(createControlPanel(), BorderLayout.WEST);
 
-        // Center Panel
+        // Center Panel (Mitte: Lager + Tabelle)
         JPanel centerPanel = new JPanel(new GridLayout(2, 1, 10, 10));
         centerPanel.add(createStockPanel());
         centerPanel.add(createOrderTablePanel());
         add(centerPanel, BorderLayout.CENTER);
 
-        // Log Panel
+        // Log Panel (Unten)
         add(createLogPanel(), BorderLayout.SOUTH);
     }
 
@@ -106,7 +106,7 @@ public class FabrikGUI extends JFrame {
         
         panel.add(inputGroup);
 
-        // 3. Steuerung
+        // 3. Steuerung (Pause / Abbruch)
         panel.add(Box.createVerticalStrut(20));
         JPanel ctrlGroup = new JPanel();
         ctrlGroup.setLayout(new BoxLayout(ctrlGroup, BoxLayout.Y_AXIS));
@@ -114,7 +114,7 @@ public class FabrikGUI extends JFrame {
         ctrlGroup.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         btnPause = new JToggleButton("PRODUKTION PAUSIEREN");
-        btnPause.setBackground(new Color(241, 196, 15)); 
+        btnPause.setBackground(new Color(241, 196, 15)); // Gelb
         btnPause.setForeground(Color.BLACK);
         btnPause.setFocusPainted(false);
         btnPause.setMaximumSize(new Dimension(200, 40));
@@ -124,11 +124,12 @@ public class FabrikGUI extends JFrame {
         ctrlGroup.add(Box.createVerticalStrut(10));
 
         JButton btnCancel = new JButton("ALLES ABBRECHEN");
-        styleButton(btnCancel, new Color(192, 57, 43));
+        styleButton(btnCancel, new Color(192, 57, 43)); // Rot
         btnCancel.addActionListener(e -> storniereAlles());
         ctrlGroup.add(btnCancel);
 
         panel.add(ctrlGroup);
+
         return panel;
     }
     
@@ -165,9 +166,6 @@ public class FabrikGUI extends JFrame {
         return statusPanel;
     }
 
-    /**
-     * UPDATE: Neues Lager-Panel mit integrierten Spinnern für Grenzwerte.
-     */
     private JPanel createStockPanel() {
         JPanel panel = new JPanel(new GridLayout(5, 1, 5, 5));
         panel.setBorder(BorderFactory.createTitledBorder("Lagerbestand & Automatische Nachbestellung"));
@@ -178,7 +176,7 @@ public class FabrikGUI extends JFrame {
         barKarton = createStyledProgressBar();
         barGlas = createStyledProgressBar();
 
-        // Übergabe der Materialnamen und Initialwerte
+        // Übergabe der Materialnamen und Initialwerte aus dem Lager
         panel.add(layoutBarPanel("Holz", barHolz, "Holz", lager.gibMinHolz(), lager.gibMaxHolz()));
         panel.add(layoutBarPanel("Schrauben", barSchrauben, "Schrauben", lager.gibMinSchrauben(), lager.gibMaxSchrauben()));
         panel.add(layoutBarPanel("Farbe", barFarbe, "Farbe", lager.gibMinFarbe(), lager.gibMaxFarbe()));
@@ -196,33 +194,22 @@ public class FabrikGUI extends JFrame {
         return bar;
     }
 
-    /**
-     * Helper für das Layout einer Zeile: Label | Bar | Min-Spinner
-     */
     private JPanel layoutBarPanel(String label, JProgressBar bar, String materialKey, int currentMin, int maxVal) {
         JPanel p = new JPanel(new BorderLayout(10, 0));
-        
-        // Label
         JLabel lbl = new JLabel(label);
         lbl.setPreferredSize(new Dimension(80, 20));
         p.add(lbl, BorderLayout.WEST);
-        
-        // Center: Bar
         p.add(bar, BorderLayout.CENTER);
         
         // Right: Spinner für Min-Wert
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         right.add(new JLabel("Min:"));
-        
         JSpinner spinMin = new JSpinner(new SpinnerNumberModel(currentMin, 0, maxVal, 10));
         spinMin.setPreferredSize(new Dimension(70, 25));
-        
-        // Event Listener: Sofortiges Update im Lager
         spinMin.addChangeListener(e -> {
             int newVal = (Integer) spinMin.getValue();
             lager.setzeMinBestand(materialKey, newVal);
         });
-        
         right.add(spinMin);
         p.add(right, BorderLayout.EAST);
         
@@ -256,11 +243,21 @@ public class FabrikGUI extends JFrame {
         return panel;
     }
 
-    // --- Logic ---
+    // --- Actions ---
+
     private void aufgebenBestellung() {
         int std = (Integer) spinStandard.getValue();
         int prem = (Integer) spinPremium.getValue();
-        if (std == 0 && prem == 0) return;
+
+        // FIX: Benutzerfeedback bei leeren Eingaben
+        if (std == 0 && prem == 0) {
+            JOptionPane.showMessageDialog(this, 
+                "Bitte wählen Sie mindestens eine Tür aus!", 
+                "Keine Menge gewählt", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         fabrik.bestellungAufgeben(prem, std);
         spinStandard.setValue(0);
         spinPremium.setValue(0);
@@ -271,18 +268,20 @@ public class FabrikGUI extends JFrame {
         fabrik.setzeProduktionPausiert(pause);
         if(pause) {
             btnPause.setText("FORTSETZEN");
-            btnPause.setBackground(new Color(230, 126, 34)); 
+            btnPause.setBackground(new Color(230, 126, 34)); // Orange
         } else {
             btnPause.setText("PRODUKTION PAUSIEREN");
-            btnPause.setBackground(new Color(241, 196, 15)); 
+            btnPause.setBackground(new Color(241, 196, 15)); // Gelb
         }
     }
     
     private void storniereAlles() {
         int confirm = JOptionPane.showConfirmDialog(this, 
             "Wirklich alle ausstehenden Bestellungen abbrechen?", "Warnung", JOptionPane.YES_NO_OPTION);
+            
         if(confirm == JOptionPane.YES_OPTION) {
             fabrik.stornierePendenteBestellungen();
+            JOptionPane.showMessageDialog(this, "Alle wartenden Aufträge wurden storniert.");
         }
     }
 
@@ -298,16 +297,21 @@ public class FabrikGUI extends JFrame {
     }
     
     private void updateStatusDisplay() {
+        // Priorität 1: Ist Pause?
         if (btnPause.isSelected()) {
             setStatus("⏸", "PRODUKTION PAUSIERT", new Color(255, 243, 205), Color.ORANGE);
             return;
         }
+
+        // Priorität 2: Wartende LKW an der Rampe (Critical!)
         int wartendeLKW = lager.gibWartendeLKW();
         if (wartendeLKW > 0) {
             setStatus("⚠️", "<html><b>RAMPE VOLL!</b><br>" + wartendeLKW + " LKW warten auf Entladung.</html>", 
                       new Color(255, 200, 200), Color.RED);
             return;
         }
+
+        // Priorität 3: Lieferungen unterwegs
         Lieferant lieferant = fabrik.gibLieferant();
         if(lieferant != null) {
             List<Long> etas = lieferant.gibVerbleibendeSekundenListe();
@@ -326,6 +330,8 @@ public class FabrikGUI extends JFrame {
                 return;
             }
         }
+        
+        // Normalzustand
         setStatus("✔", "<html>System bereit.<br>Produktion läuft normal.</html>", 
                   new Color(230, 255, 230), new Color(39, 174, 96));
     }
@@ -348,15 +354,19 @@ public class FabrikGUI extends JFrame {
     private void updateOrderTable() {
         orderTableModel.setRowCount(0); 
         ArrayList<Bestellung> bestellungen = fabrik.gibBestellungen();
+        
         for (int i = bestellungen.size() - 1; i >= 0; i--) {
             Bestellung b = bestellungen.get(i);
+            
             int countStd = 0; int countPrem = 0;
             for(Produkt p : b.liefereBestellteProdukte()) {
                 if(p instanceof Standardtuer) countStd++; else countPrem++;
             }
+
             long fertigCount = b.liefereBestellteProdukte().stream().filter(Produkt::istFertig).count();
             int total = b.liefereBestellteProdukte().size();
             String fortschritt = fertigCount + " / " + total;
+            
             String status;
             if (b.istStorniert()) {
                 status = "ABGEBROCHEN";
@@ -367,7 +377,10 @@ public class FabrikGUI extends JFrame {
             } else {
                 status = "WARTESCHLANGE";
             }
-            orderTableModel.addRow(new Object[]{ b.gibBestellungsNr(), countStd, countPrem, fortschritt, status });
+
+            orderTableModel.addRow(new Object[]{
+                b.gibBestellungsNr(), countStd, countPrem, fortschritt, status
+            });
         }
     }
 

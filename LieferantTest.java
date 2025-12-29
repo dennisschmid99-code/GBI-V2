@@ -72,4 +72,35 @@ public class LieferantTest {
         boolean akzeptiert = lieferant.wareBestellen(0, 0, 0, 0, 0);
         assertTrue(akzeptiert, "Leere Bestellung ist technisch erlaubt (Queue nimmt alles).");
     }
+    
+    
+    /**
+     * EDGE CASE: Fleet Management & ETA.
+     * Prüft, ob die Liste der ankommenden LKW korrekt verwaltet wird.
+     */
+    @Test
+    public void testLieferStatusListe() {
+        System.out.println("Test: ETA Liste für GUI");
+        
+        // Zeit hochsetzen, damit die LKW "unterwegs" bleiben für den Check
+        lieferant.setzeLieferzeitFuerTests(500); 
+        
+        // 3 Bestellungen feuern -> 3 LKW
+        lieferant.wareBestellen(10, 0, 0, 0, 0);
+        lieferant.wareBestellen(10, 0, 0, 0, 0);
+        lieferant.wareBestellen(10, 0, 0, 0, 0);
+        
+        // Kurz warten, damit Threads starten
+        try { Thread.sleep(50); } catch (Exception e) {}
+        
+        var liste = lieferant.gibVerbleibendeSekundenListe();
+        
+        assertEquals(3, liste.size(), "Es sollten 3 LKW unterwegs sein.");
+        
+        // Warten bis Ankunft
+        try { Thread.sleep(600); } catch (Exception e) {}
+        
+        liste = lieferant.gibVerbleibendeSekundenListe();
+        assertEquals(0, liste.size(), "Alle LKW sollten angekommen sein.");
+    }
 }
